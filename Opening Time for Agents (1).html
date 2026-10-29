@@ -1,0 +1,1763 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Opening Time for Agents</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Big+Shoulders+Display:wght@600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a projector-first stage that shows one scene at a time, a slim header with the park clock and talk timer, and a rail that maps the three acts */
+:root {
+  --ground: #EDF1F0;
+  --paper: #FFFFFF;
+  --ink: #102731;
+  --muted: #566B72;
+  --line: #C7D3D2;
+  --rule: #0A7A72;
+  --rule-wash: #D8EEEA;
+  --sun: #E3A01A;
+  --sun-wash: #FBEFD3;
+  --ok: #2A8549;
+  --warn: #A86F05;
+  --bad: #BE3E2B;
+  --night: #0E1B25;
+  --night-2: #18303D;
+  --night-ink: #E6EDEF;
+  --night-muted: #8FA4AD;
+  --code-bg: #F8FAF9;
+  --syn-kw: #1C5C96;
+  --syn-str: #94470C;
+  --syn-com: #66797E;
+  --syn-num: #0A7A72;
+  --syn-type: #763C9B;
+
+  --f-display: "Big Shoulders Display", "Oswald", "Arial Narrow", sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --t-hero: clamp(3.2rem, 10vw, 8.5rem);
+  --t-h1: clamp(2.2rem, 5.2vw, 4.6rem);
+  --t-h2: clamp(1.5rem, 3vw, 2.5rem);
+  --t-lead: clamp(1.15rem, 1.9vw, 1.75rem);
+  --t-body: clamp(1rem, 1.45vw, 1.35rem);
+  --t-small: clamp(.85rem, 1.05vw, 1rem);
+  --t-code: clamp(.8rem, 1.22vw, 1.45rem);
+
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: light;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+
+/* Header */
+.top {
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  padding-block: 10px;
+  padding-left: var(--gutter-l); padding-right: var(--gutter-r);
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  font-size: var(--t-small);
+}
+.top .brand { font-family: var(--f-display); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; font-size: 1.05rem; white-space: nowrap; }
+.top .act { color: var(--muted); letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.top .left { display: flex; gap: 14px; align-items: baseline; min-width: 0; }
+.top .right { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.chip-clock {
+  font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; letter-spacing: .04em;
+  background: var(--sun-wash); color: var(--ink); border-radius: 6px; padding: 2px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.chip-clock:empty { display: none; }
+.timer {
+  border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 3px 10px; cursor: pointer;
+  font-family: var(--f-mono); font-size: .82rem; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.timer.behind { border-color: var(--bad); color: var(--bad); }
+.timer.onpace { border-color: var(--ok); color: var(--ok); }
+
+/* Stage and scenes */
+.stage { position: relative; min-height: 0; overflow: hidden; }
+.scene {
+  position: absolute; inset: 0; overflow-y: auto; display: none;
+  padding-block: clamp(16px, 3.5vh, 44px);
+  padding-left: var(--gutter-l); padding-right: var(--gutter-r);
+}
+.scene.active { display: flex; animation: sceneIn .35s ease-out; }
+@keyframes sceneIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.wrap { margin: auto; width: 100%; max-width: 1180px; display: grid; gap: clamp(14px, 2.4vh, 28px); min-width: 0; }
+.wrap > * { min-width: 0; }
+.scene.night { background: var(--night); color: var(--night-ink); }
+.scene.day { background: var(--sun-wash); }
+.scene.rulebg { background: var(--rule-wash); }
+
+.eyebrow { font-size: var(--t-small); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.night .eyebrow { color: var(--night-muted); }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: var(--t-h1); line-height: 1; letter-spacing: .01em; text-transform: uppercase; }
+h2 { font-family: var(--f-display); font-weight: 800; font-size: var(--t-h2); line-height: 1.05; text-transform: uppercase; letter-spacing: .02em; }
+h3 { font-size: var(--t-body); font-weight: 700; }
+p { margin: 0; max-width: 65ch; }
+.lead { font-size: var(--t-lead); line-height: 1.4; max-width: 40ch; }
+.quote { font-size: var(--t-h2); line-height: 1.2; font-weight: 700; max-width: 26ch; text-wrap: balance; }
+.muted { color: var(--muted); }
+.night .muted { color: var(--night-muted); }
+.small { font-size: var(--t-small); }
+code.inl { font-family: var(--f-mono); font-size: .9em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 .3em; }
+
+.placeholder {
+  justify-self: start; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700;
+  border: 1.5px dashed var(--warn); color: var(--warn); border-radius: 4px; padding: 3px 8px;
+}
+
+/* Fragments */
+[data-frag] { transition: opacity .35s ease, transform .35s ease; }
+[data-frag]:not(.shown) { opacity: 0; transform: translateY(6px); pointer-events: none; }
+[data-until].gone { display: none; }
+
+/* Ticket (title scene) */
+.ticket {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; background: var(--paper);
+  border-radius: 14px; box-shadow: 0 1px 0 var(--line), 0 18px 50px -30px rgba(16, 39, 49, .45);
+  overflow: hidden; max-width: 1080px; margin-inline: auto; width: 100%;
+}
+.ticket .main { padding: clamp(22px, 4vw, 54px); display: grid; gap: 16px; min-width: 0; }
+.ticket .stub {
+  border-left: 3px dashed var(--line); padding: clamp(18px, 3vw, 36px); display: grid; align-content: space-between; gap: 18px;
+  background: var(--sun-wash); min-width: 150px;
+}
+.ticket .hero { font-family: var(--f-display); font-weight: 800; font-size: var(--t-hero); line-height: .86; text-transform: uppercase; letter-spacing: .005em; }
+.ticket .hero span { display: block; color: var(--rule); }
+.ticket .sub { font-size: var(--t-lead); max-width: 34ch; }
+.stub dl { margin: 0; display: grid; gap: 10px; }
+.stub dt { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.stub dd { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 1.6rem; line-height: 1; }
+.stub .admit { font-family: var(--f-display); font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--rule); }
+
+/* Cold open */
+.bigclock { font-family: var(--f-display); font-weight: 800; font-size: clamp(4rem, 15vw, 12rem); line-height: .85; font-variant-numeric: tabular-nums; color: var(--sun); }
+.bigclock small { font-size: .38em; color: var(--night-muted); margin-left: .12em; }
+.crowd { width: 100%; height: clamp(180px, 34vh, 360px); display: block; border-radius: 12px; background: var(--night-2); }
+
+/* Generic layouts */
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: clamp(16px, 3vw, 40px); align-items: start; }
+.trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: clamp(14px, 2vw, 24px); display: grid; gap: 8px; align-content: start; }
+.night .card { background: var(--night-2); border-color: transparent; }
+
+.path { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: var(--t-small); }
+.path span { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.path i { color: var(--muted); font-style: normal; }
+
+/* Rules */
+.rule {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: clamp(12px, 2vw, 28px); align-items: center;
+  background: var(--paper); border-radius: 14px; padding: clamp(16px, 2.6vw, 34px); border: 2px solid var(--rule);
+}
+.rule .num { font-family: var(--f-display); font-weight: 800; font-size: clamp(3.5rem, 9vw, 8rem); line-height: .8; color: var(--rule); }
+.rule .txt { font-family: var(--f-display); font-weight: 800; font-size: var(--t-h1); line-height: .95; text-transform: uppercase; }
+.rule .es { font-size: var(--t-small); color: var(--muted); margin-top: 8px; font-style: italic; }
+.rule.compact .num { font-size: clamp(2.4rem, 5vw, 4.2rem); }
+.rule.compact .txt { font-size: var(--t-h2); }
+.rules { display: grid; gap: 12px; }
+.rtag { display: inline-block; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--paper); background: var(--rule); border-radius: 4px; padding: 2px 7px; white-space: nowrap; }
+
+/* Code */
+.codewrap { display: grid; gap: 8px; min-width: 0; }
+.codehead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: var(--t-small); }
+.codehead .lbl { font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: .78rem; }
+.code {
+  margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 0; overflow-x: auto; font-family: var(--f-mono); font-size: var(--t-code); line-height: 1.55; tab-size: 4;
+}
+.code.sm { font-size: clamp(.72rem, 1.02vw, 1.2rem); }
+.code .ln { display: block; padding: 0 1em 0 calc(1em - 3px); border-left: 3px solid transparent; white-space: pre; transition: opacity .25s, background-color .25s; min-height: 1.55em; }
+.code.has-hl .ln { opacity: .36; }
+.code.has-hl .ln.hl { opacity: 1; background: var(--sun-wash); border-left-color: var(--sun); }
+.code .kw { color: var(--syn-kw); font-weight: 600; }
+.code .str { color: var(--syn-str); }
+.code .com { color: var(--syn-com); font-style: italic; }
+.code .num { color: var(--syn-num); }
+.code .ty { color: var(--syn-type); }
+.ba { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; font-size: .8rem; }
+.ba span { padding: 2px 10px; }
+.ba span.on { background: var(--ink); color: var(--paper); }
+.callback { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--rule); border: 1.5px solid var(--rule); border-radius: 4px; padding: 2px 8px; }
+
+/* Controls */
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tog {
+  border: 1.5px solid var(--line); background: var(--paper); border-radius: 8px; padding: 6px 14px; cursor: pointer;
+  font-size: var(--t-small); font-weight: 700;
+}
+.tog:hover { border-color: var(--ink); }
+.tog[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tog.danger[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); }
+.tog.go { background: var(--rule); border-color: var(--rule); color: var(--paper); }
+.tog.go:hover { filter: brightness(1.08); }
+
+/* Story 1 simulation */
+.pool { display: grid; grid-template-columns: repeat(25, minmax(0, 1fr)); gap: 3px; max-width: 640px; }
+.pool i { aspect-ratio: 1; border-radius: 3px; background: var(--line); opacity: .45; transition: background-color .3s, opacity .3s; max-width: 100%; }
+.pool i.on { opacity: 1; background: var(--ok); }
+.pool.jam i.on { background: var(--bad); }
+.pool.warm i.on { background: var(--sun); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+.stat { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.stat b { display: block; font-family: var(--f-display); font-weight: 800; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: .8rem; color: var(--muted); }
+.verdict { font-weight: 700; font-size: var(--t-lead); max-width: 40ch; }
+.verdict.bad { color: var(--bad); } .verdict.ok { color: var(--ok); }
+.law { font-family: var(--f-mono); font-size: var(--t-small); color: var(--muted); }
+
+/* Story 2 report */
+.report { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: clamp(14px, 2vw, 22px); display: grid; gap: 10px; min-height: 220px; align-content: start; }
+.report header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.report header b { font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; text-transform: uppercase; }
+.sec { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: center; }
+.sec .bar { height: 14px; border-radius: 3px; background: var(--rule); }
+.sec.missing .bar { background: repeating-linear-gradient(135deg, var(--line) 0 6px, transparent 6px 12px); }
+.sec .tag { font-size: .82rem; color: var(--bad); font-weight: 700; }
+.report .dead { color: var(--bad); font-weight: 700; font-size: var(--t-lead); padding-block: 30px; text-align: center; }
+
+/* Map */
+.stages { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.stg { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px; display: grid; gap: 6px; align-content: start; min-height: 150px; }
+.stg .n { font-family: var(--f-display); font-weight: 800; font-size: 1.6rem; line-height: 1; color: var(--muted); }
+.stg .nm { font-weight: 700; font-size: var(--t-small); line-height: 1.2; }
+.stg.mark { border: 2px solid var(--rule); }
+.stg.mark .n { color: var(--rule); }
+.stg .why { font-size: .78rem; color: var(--muted); line-height: 1.3; }
+@media (max-width: 760px) { .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stg { min-height: 0; } }
+
+/* Park map */
+.parkmap { width: 100%; max-width: 560px; height: auto; display: block; }
+.toolchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.toolchips span { font-family: var(--f-mono); font-size: var(--t-small); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; }
+
+/* Budget meters */
+.gauge { display: grid; gap: 6px; }
+.gauge .lab { display: flex; justify-content: space-between; gap: 8px; font-size: var(--t-small); font-weight: 700; }
+.gauge .lab span { font-family: var(--f-mono); font-weight: 400; font-variant-numeric: tabular-nums; }
+.gauge .track { height: 12px; border-radius: 999px; background: var(--ground); border: 1px solid var(--line); overflow: hidden; }
+.gauge .fill { height: 100%; width: 0; background: var(--rule); transition: width .15s linear; }
+.gauge .fill.hot { background: var(--bad); }
+
+/* Demo */
+.demo-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: end; }
+.demo-q { font-size: var(--t-lead); font-weight: 700; max-width: 34ch; }
+.scen { display: flex; flex-wrap: wrap; gap: 6px; }
+.scen .tog { display: grid; gap: 0; text-align: left; padding: 5px 12px; }
+.scen .tog small { font-weight: 400; font-size: .72rem; opacity: .8; }
+.demo-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 860px) { .demo-grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; align-content: start; min-height: 260px; }
+.panel h3 { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.trace { list-style: none; margin: 0; padding: 0; font-family: var(--f-mono); font-size: clamp(.74rem, 1.02vw, 1.08rem); display: grid; gap: 3px; overflow-x: auto; }
+.trace li { white-space: pre; padding: 2px 6px; border-radius: 4px; border-left: 3px solid var(--line); }
+.trace li.pending { color: var(--muted); }
+.trace li.pending::after { content: " ●"; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.trace li.ok { border-left-color: var(--ok); }
+.trace li.model { border-left-color: var(--ink); }
+.trace li.timeout { border-left-color: var(--warn); color: var(--warn); background: var(--sun-wash); }
+.trace li.error { border-left-color: var(--bad); color: var(--bad); }
+.trace li.reused { border-left-color: var(--rule); color: var(--rule); }
+.trace li.cut { border-left-color: var(--bad); color: var(--bad); background: #FBE7E3; }
+.answer { font-size: var(--t-body); line-height: 1.45; }
+.unv { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; font-size: var(--t-small); }
+.unv b { color: var(--bad); }
+.unv b.none { color: var(--ok); }
+.meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.simnote { font-size: .8rem; color: var(--muted); }
+
+/* Loop diagram */
+.loopsvg { width: 100%; height: auto; max-width: 1040px; display: block; margin-inline: auto; }
+.loopsvg .bx { fill: var(--paper); stroke: var(--line); stroke-width: 1.5; }
+.loopsvg .bx.r { stroke: var(--rule); stroke-width: 2; }
+.loopsvg .ed { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+.loopsvg text { fill: var(--ink); font-family: var(--f-body); }
+.loopsvg .t1 { font-weight: 700; font-size: 17px; }
+.loopsvg .t2 { font-size: 13.5px; fill: var(--muted); }
+.loopsvg .t3 { font-size: 13px; font-weight: 700; fill: var(--rule); }
+.loopsvg .lab { font-size: 13px; fill: var(--muted); }
+
+/* QR */
+.qrimg { width: clamp(160px, 22vw, 260px); max-width: 100%; height: auto; background: #FFFFFF; border-radius: 12px; padding: 6px; justify-self: center; }
+.repo { color: var(--sun); text-decoration: none; border-bottom: 1px solid currentColor; }
+.qr { width: clamp(120px, 18vw, 200px); aspect-ratio: 1; border: 2px dashed var(--line); border-radius: 12px; display: grid; place-items: center; text-align: center; font-size: .8rem; color: var(--muted); padding: 10px; max-width: 100%; }
+
+/* Rail */
+.rail {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding-block: 8px; padding-left: var(--gutter-l); padding-right: var(--gutter-r);
+  border-top: 1px solid var(--line); background: var(--paper); font-size: var(--t-small);
+}
+.acts { display: flex; gap: 4px; min-width: 0; }
+.actseg { flex: var(--n) 1 0; display: grid; gap: 4px; min-width: 0; cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
+.actseg .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.actseg .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .3s; }
+.actseg .nm { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.actseg.cur .nm { color: var(--ink); font-weight: 700; }
+.nav { display: flex; gap: 6px; align-items: center; }
+.ibtn { border: 1px solid var(--line); background: var(--paper); border-radius: 8px; min-width: 38px; height: 34px; padding: 0 10px; cursor: pointer; font-weight: 700; }
+.ibtn:hover { border-color: var(--ink); }
+.count { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+@media (max-width: 640px) { .top .brand { display: none; } .actseg .nm { display: none; } .hide-sm { display: none; } }
+
+/* Notes drawer and overview */
+.notes {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; max-height: 40vh; overflow-y: auto;
+  background: var(--ink); color: var(--paper);
+  padding-block: 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  padding-left: var(--gutter-l); padding-right: var(--gutter-r);
+  box-shadow: 0 -10px 30px rgba(0,0,0,.25); font-size: var(--t-body);
+}
+.notes .nh { display: flex; justify-content: space-between; gap: 10px; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--night-muted); margin-bottom: 6px; }
+.notes ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; max-width: 80ch; }
+.overview {
+  position: fixed; inset: 0; z-index: 30; background: var(--ground); overflow-y: auto;
+  padding-block: calc(20px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left: var(--gutter-l); padding-right: var(--gutter-r);
+}
+.overview .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 8px; max-width: 1180px; margin: 14px auto; }
+.overview .grid button { text-align: left; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; display: grid; gap: 2px; }
+.overview .grid button.cur { border: 2px solid var(--ink); }
+.overview .grid small { color: var(--muted); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.overview .head { max-width: 1180px; margin: 0 auto; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: var(--t-small); color: var(--muted); }
+.keys kbd { font-family: var(--f-mono); background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; color: var(--ink); }
+
+/* Pop quiz */
+h1 em, h2 em { font-style: normal; color: var(--rule); }
+.night h1 em, .night h2 em { color: var(--sun); }
+.night .qr { border-color: var(--night-muted); color: var(--night-muted); }
+.qhead { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.qtext { font-size: var(--t-h2); line-height: 1.2; font-weight: 700; max-width: 32ch; text-wrap: balance; }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .opts { grid-template-columns: minmax(0, 1fr); } }
+.opt {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center;
+  background: var(--paper); border: 1.5px solid var(--line); border-radius: 12px; padding: clamp(12px, 1.6vw, 20px) clamp(14px, 2vw, 24px);
+  transition: opacity .35s, border-color .35s, background-color .35s;
+}
+.opt .l { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 3.6vw, 3.2rem); line-height: 1; color: var(--rule); width: 1.1em; text-align: center; }
+.opt .t { font-size: var(--t-lead); line-height: 1.3; }
+.opts.revealed .opt { opacity: .32; }
+.opts.revealed .opt.right { opacity: 1; border: 2px solid var(--rule); background: var(--rule-wash); }
+.explain { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; border-left: 3px solid var(--rule); padding-left: 14px; }
+.explain p { font-size: var(--t-body); }
+
+@media (prefers-reduced-motion: reduce) {
+  .scene.active { animation: none; }
+  [data-frag], .pool i, .gauge .fill, .actseg .bar i, .opt { transition: none; }
+  .trace li.pending::after { animation: none; }
+}
+
+/* ---------- Agent POS additions ---------- */
+.archsvg, .flowsvg { width: 100%; height: auto; display: block; margin-inline: auto; }
+.archsvg { max-width: 1060px; }
+.archsvg .bx, .flowsvg .bx { fill: var(--paper); stroke: var(--line); stroke-width: 1.5; }
+.archsvg .bx.edge { fill: var(--sun-wash); stroke: var(--sun); stroke-width: 2; }
+.archsvg .bx.svc { stroke: var(--rule); stroke-width: 1.8; }
+.archsvg .bx.trace { fill: var(--rule-wash); stroke: var(--rule); }
+.archsvg .bx.agentbx { fill: var(--rule-wash); stroke: var(--rule); stroke-width: 2; }
+.archsvg .bx.backend { fill: var(--paper); stroke: var(--rule); stroke-width: 2; }
+.archsvg .lab { font-size: 12.5px; fill: var(--muted); font-weight: 700; }
+.archsvg .ed, .flowsvg .ed { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+.archsvg text, .flowsvg text { fill: var(--ink); font-family: var(--f-body); }
+.archsvg .t1, .flowsvg .t1 { font-weight: 700; font-size: 16px; }
+.archsvg .t2, .flowsvg .t2 { font-size: 13.5px; fill: var(--muted); }
+.archsvg .tt { font-family: var(--f-display); font-weight: 800; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; }
+.flowsvg .cde { fill: none; stroke: var(--bad); stroke-width: 1.8; stroke-dasharray: 6 5; }
+.flowsvg .cdel { font-size: 13px; font-weight: 700; fill: var(--bad); }
+.flowsvg .tok { font-family: var(--f-mono); font-size: 13px; fill: var(--rule); font-weight: 600; }
+
+.saga { display: grid; gap: 8px; }
+.saga .row { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.saga .row .k { font-family: var(--f-display); font-weight: 800; font-size: 1.6rem; color: var(--muted); }
+.saga .row .comp { color: var(--muted); font-size: var(--t-small); }
+.saga .head { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) minmax(0, 1fr); gap: 12px; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding-inline: 14px; }
+.saga.s-run .row.r1, .saga.s-run .row.r2, .saga.s-run .row.r3, .saga.s-run .row.r4, .saga.s-run .row.r5 { border-color: var(--ok); }
+.saga.s-fail .row.r3 { border: 2px solid var(--bad); }
+.saga.s-fail .row.r4, .saga.s-fail .row.r5 { opacity: .35; }
+.saga.s-comp .row.r1 .comp, .saga.s-comp .row.r2 .comp { color: var(--warn); font-weight: 700; }
+.saga .mark { font-weight: 700; }
+
+.thesis { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: center; }
+@media (max-width: 760px) { .thesis { grid-template-columns: minmax(0, 1fr); } .thesis .arrow { transform: rotate(90deg); justify-self: center; } }
+.thesis .arrow { font-family: var(--f-display); font-weight: 800; font-size: 3rem; color: var(--rule); }
+.speech { background: var(--paper); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 16px 20px; font-size: var(--t-lead); font-weight: 700; }
+
+.agents { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.agent h3 { font-family: var(--f-display); font-weight: 800; font-size: var(--t-h2); text-transform: uppercase; line-height: 1; }
+.agent .who { font-size: var(--t-small); color: var(--muted); }
+.agent ul { margin: 0; padding-left: 1.1em; display: grid; gap: 2px; font-size: var(--t-small); }
+.agent .can b { color: var(--ok); } .agent .cannot b { color: var(--bad); }
+.agent.det { background: var(--rule-wash); border-color: var(--rule); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { font-family: var(--f-mono); font-size: .8rem; background: var(--ground); border: 1px solid var(--line); border-radius: 5px; padding: 1px 7px; }
+
+.vs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: var(--t-small); }
+.kv dt { color: var(--muted); font-weight: 700; }
+.kv dd { margin: 0; }
+
+.tiers { display: grid; gap: 8px; }
+.tier { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1.35fr); gap: 12px; align-items: start; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: var(--t-small); }
+.tier.th { background: none; border: 0; padding-block: 0; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.tier b { display: block; font-size: var(--t-body); }
+.tier .rulecell { color: var(--rule); font-weight: 700; }
+.tier .typecell { font-weight: 700; }
+.tier.notmem { border-style: dashed; background: var(--ground); }
+.tier.notmem .typecell { color: var(--muted); }
+@media (max-width: 860px) {
+  .tier { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .tier.th { display: none; }
+  .tier > span[data-l]::before { content: attr(data-l) ": "; color: var(--muted); font-weight: 700; }
+}
+
+.ladder { display: grid; gap: 8px; }
+.rung { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.rung .lv { font-family: var(--f-display); font-weight: 800; font-size: 2rem; line-height: 1; color: var(--muted); }
+.rung .ex { font-size: var(--t-small); color: var(--muted); }
+.rung.yes { border-color: var(--ok); } .rung.yes .lv { color: var(--ok); }
+.rung.gate { border: 2px solid var(--rule); } .rung.gate .lv { color: var(--rule); }
+.rung.no { border-style: dashed; border-color: var(--bad); } .rung.no .lv { color: var(--bad); }
+@media (max-width: 640px) { .rung { grid-template-columns: 2.4em minmax(0, 1fr); } .rung .ex { grid-column: 2; } }
+
+.lanes { display: grid; gap: 16px; }
+.lane2 { display: grid; gap: 6px; }
+.lane2 .nm { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; flex-wrap: wrap; }
+.lane2 .nm span { font-weight: 400; color: var(--muted); font-size: var(--t-small); }
+.bars { display: flex; gap: 3px; height: 34px; }
+.bars i { display: grid; place-items: center; font-style: normal; font-size: .74rem; font-weight: 700; color: var(--paper); border-radius: 4px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.bars .go { background: var(--rule); }
+.bars .dev { background: var(--sun); color: var(--ink); }
+.bars .cloud { background: var(--ink); }
+.bars .tool { background: var(--muted); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .74rem; color: var(--muted); }
+
+/* Demo */
+.dgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 14px; }
+@media (max-width: 900px) { .dgrid { grid-template-columns: minmax(0, 1fr); } }
+.dpanel { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; align-content: start; min-height: 0; }
+.dpanel h3 { font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.scroller { overflow-y: auto; max-height: min(46vh, 460px); display: grid; gap: 8px; align-content: start; padding-right: 4px; }
+.bub { max-width: 88%; padding: 8px 12px; border-radius: 14px; font-size: var(--t-small); line-height: 1.4; }
+.bub.guest { justify-self: end; background: var(--ink); color: var(--paper); border-bottom-right-radius: 4px; }
+.bub.agent { justify-self: start; background: var(--ground); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.bub .who { display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; opacity: .7; font-weight: 700; }
+.bub .opt2 { display: flex; justify-content: space-between; gap: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; margin-top: 6px; font-weight: 700; }
+.prop { justify-self: start; width: min(100%, 420px); border: 2px solid var(--rule); border-radius: 10px; background: var(--rule-wash); padding: 8px 12px; display: grid; gap: 4px; }
+.prop b { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--rule); }
+.prop pre { margin: 0; font-family: var(--f-mono); font-size: .76rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.trc { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: var(--t-small); }
+.trc li { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 8px; align-items: start; padding: 3px 6px; border-radius: 4px; border-left: 3px solid var(--line); }
+.trc li.ok { border-left-color: var(--ok); }
+.trc li.warn { border-left-color: var(--warn); background: var(--sun-wash); }
+.trc li.err { border-left-color: var(--bad); background: #FBE7E3; color: var(--bad); }
+.trc li.comp { border-left-color: var(--warn); color: var(--warn); font-weight: 700; }
+.lane { font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; border-radius: 4px; padding: 1px 6px; text-align: center; white-space: nowrap; }
+.lane.router, .lane.rules, .lane.saga { background: var(--rule); color: var(--paper); }
+.lane.device { background: var(--sun); color: var(--ink); }
+.lane.cloud { background: var(--ink); color: var(--paper); }
+.lane.tool { background: var(--ground); border: 1px solid var(--line); }
+.lane.human { background: var(--paper); border: 1px solid var(--ink); }
+.checks { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.checks li { display: flex !important; gap: 8px; border: 0 !important; padding: 0 !important; background: none !important; color: var(--ink) !important; }
+.checks .y { color: var(--ok); font-weight: 700; } .checks .n { color: var(--bad); font-weight: 700; }
+.checks .v { margin-left: auto; font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+.auditlog { font-family: var(--f-mono); font-size: .72rem; line-height: 1.45; max-height: min(18vh, 170px); overflow: auto; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; white-space: pre; }
+.auditlog:empty::before { content: "No decisions yet."; color: var(--muted); }
+.dstatus { font-weight: 700; font-size: var(--t-body); min-height: 1.5em; }
+.dstatus.ok { color: var(--ok); } .dstatus.bad { color: var(--bad); }
+
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="left">
+      <span class="brand">Opening Time for Agents</span>
+      <span class="act" id="actLabel">Prologue</span>
+    </div>
+    <div class="right">
+      <span class="chip-clock" id="parkClock"></span>
+      <button class="timer" id="timer" type="button" title="Start or reset the talk timer (T)">Start timer</button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+
+    <!-- ================= PROLOGUE ================= -->
+    <section class="scene" id="title" data-act="Prologue" data-seg="open" data-title="Title">
+      <div class="wrap">
+        <div class="ticket">
+          <div class="main">
+            <div class="eyebrow">GDG Cúcuta · A proposal in Go</div>
+            <div class="hero">Opening Time <span>for Agents</span></div>
+            <p class="sub">Bringing AI agents to a theme-park point of sale without giving up what Go services do best</p>
+            <p class="muted">Fermín · Software engineer, Cúcuta, Colombia</p>
+          </div>
+          <div class="stub">
+            <div class="admit">Admit one</div>
+            <dl>
+              <div><dt>Gates open</dt><dd>9:00 AM</dd></div>
+              <div><dt>Running time</dt><dd>45 min</dd></div>
+              <div><dt>Status</dt><dd>Proposal</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+      <aside class="notes-src">
+        <li>Let the title sit. Start the timer (T) on your first word.</li>
+      </aside>
+    </section>
+
+    <section class="scene night" id="cold-open" data-act="Prologue" data-seg="open" data-title="8:59" data-clock="8:59 AM" data-frags="1">
+      <div class="wrap">
+        <div class="eyebrow">A theme park, any morning</div>
+        <div class="bigclock" id="bigClock">8:59<small>:40</small></div>
+        <canvas class="crowd" id="crowd" aria-label="A crowd waiting at the park gates" role="img"></canvas>
+        <p class="lead" data-frag="1">The gates open. The first shop after the gate fills up in minutes.</p>
+      </div>
+      <aside class="notes-src">
+        <li>"It's 8:59. In one minute, everyone walks in at the same time." Press → to open the gates.</li>
+        <li>Let the crowd flow for a beat in silence.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="the-ask" data-act="Prologue" data-seg="open" data-title="The question at the register" data-clock="9:03 AM" data-frags="2">
+      <div class="wrap">
+        <div class="eyebrow">Gate One Gifts · register 2</div>
+        <p class="quote">"Find me a Ceiba Park T-shirt under $30."</p>
+        <p class="lead" data-frag="1">Today that sentence becomes a search box, three filters and a line that doesn't move.</p>
+        <p class="lead" data-frag="2">What if the register could understand it, and still never get a total, a price or a payment wrong?</p>
+      </div>
+      <aside class="notes-src">
+        <li>This is the sentence the whole talk follows. We'll hear it again in the demo.</li>
+        <li>Second beat is the tension: language is fuzzy, money is not.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="proposal" data-act="Prologue" data-seg="open" data-title="A proposal" data-frags="1">
+      <div class="wrap split" style="align-items:center">
+        <div style="display:grid;gap:16px">
+          <div class="eyebrow">Before we start</div>
+          <h1>This is a proposal</h1>
+          <p class="lead">An architecture I'm designing for agents at a theme-park point of sale. It is not a description of any company's production system.</p>
+          <p class="muted">Ceiba Park, its shops, its products and its data are fictional.</p>
+        </div>
+        <div class="trio" style="grid-template-columns:1fr" data-frag="1">
+          <div class="card"><div class="eyebrow">Act 1</div><h3>The POS as Go services run it</h3></div>
+          <div class="card"><div class="eyebrow">Act 2</div><h3>Where agents fit, and what they're allowed to touch</h3></div>
+          <div class="card"><div class="eyebrow">Act 3</div><h3>What agents break, and the controls</h3></div>
+          <div class="card"><div class="eyebrow">Act 4</div><h3>The T-shirt, end to end</h3></div>
+        </div>
+      </div>
+      <aside class="notes-src">
+        <li>Say it plainly, once: "This is a proposal I'm working on, not how any park runs today."</li>
+        <li>Then a quick line on who you are: Cúcuta, 12+ years, Go, GDG Cúcuta lead.</li>
+      </aside>
+    </section>
+
+    <!-- ================= ACT 1 ================= -->
+    <section class="scene" id="arch" data-act="Act 1 · The POS" data-seg="act1" data-title="The POS today" data-frags="3">
+      <div class="wrap">
+        <div class="eyebrow">Act 1 · The point of sale as Go services run it</div>
+        <h2>Smart tablets, stateless services</h2>
+        <div style="overflow-x:auto">
+        <svg class="archsvg" viewBox="0 0 1000 520" role="img" aria-label="Register tablet connected through a load balancer to stateless Go services, all covered by distributed tracing">
+          <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+          <rect class="bx edge" x="20" y="30" width="330" height="410" rx="14"/>
+          <text class="tt" x="40" y="66">Register tablet</text>
+          <rect class="bx" x="40" y="84" width="290" height="72" rx="10"/>
+          <text class="t1" x="56" y="112">Hardware</text><text class="t2" x="56" y="136">scanner · card reader · printer</text>
+          <rect class="bx" x="40" y="170" width="290" height="72" rx="10"/>
+          <text class="t1" x="56" y="198">In-memory state</text><text class="t2" x="56" y="222">the active cart and session</text>
+          <rect class="bx" x="40" y="256" width="290" height="72" rx="10"/>
+          <text class="t1" x="56" y="284">Local datastore</text><text class="t2" x="56" y="308">catalog snapshot · rules · outbox</text>
+          <rect class="bx" x="40" y="342" width="290" height="80" rx="10"/>
+          <text class="t1" x="56" y="370">Offline-first</text><text class="t2" x="56" y="394">keeps selling without the network,</text><text class="t2" x="56" y="412">syncs the outbox when it returns</text>
+          <g data-frag="1">
+            <path class="ed" d="M350 235H402" marker-end="url(#ar1)"/>
+            <rect class="bx" x="404" y="196" width="128" height="80" rx="10"/>
+            <text class="t1" x="468" y="230" text-anchor="middle">Load</text><text class="t1" x="468" y="250" text-anchor="middle">balancer</text>
+            <text class="t2" x="468" y="298" text-anchor="middle">gRPC / REST</text>
+            <path class="ed" d="M532 236C556 236 556 66 578 66" marker-end="url(#ar1)"/>
+            <path class="ed" d="M532 236C556 236 556 146 578 146" marker-end="url(#ar1)"/>
+            <path class="ed" d="M532 236H578" marker-end="url(#ar1)"/>
+            <path class="ed" d="M532 236C556 236 556 306 578 306" marker-end="url(#ar1)"/>
+            <path class="ed" d="M532 236C556 236 556 386 578 386" marker-end="url(#ar1)"/>
+            <text class="tt" x="580" y="24">Stateless Go services</text>
+            <rect class="bx svc" x="580" y="36" width="250" height="60" rx="10"/><text class="t1" x="596" y="72">Catalog &amp; pricing</text>
+            <rect class="bx svc" x="580" y="116" width="250" height="60" rx="10"/><text class="t1" x="596" y="152">Inventory</text>
+            <rect class="bx svc" x="580" y="206" width="250" height="60" rx="10"/><text class="t1" x="596" y="242">Cart &amp; orders</text>
+            <rect class="bx svc" x="580" y="276" width="250" height="60" rx="10"/><text class="t1" x="596" y="304">Payments</text><text class="t2" x="596" y="324">tokenized, never raw card data</text>
+            <rect class="bx svc" x="580" y="356" width="250" height="60" rx="10"/><text class="t1" x="596" y="392">Loyalty</text>
+            <rect class="bx" x="858" y="156" width="124" height="160" rx="10"/>
+            <text class="t1" x="920" y="222" text-anchor="middle">External</text><text class="t1" x="920" y="242" text-anchor="middle">cache</text>
+            <text class="t2" x="920" y="266" text-anchor="middle">shared, not</text><text class="t2" x="920" y="284" text-anchor="middle">in the pod</text>
+          </g>
+          <g data-frag="2">
+            <rect class="bx trace" x="20" y="460" width="962" height="44" rx="10"/>
+            <text class="t1" x="40" y="488">Distributed tracing</text><text class="t2" x="200" y="488">one trace ID from the first scan to the printed receipt</text>
+          </g>
+        </svg>
+        </div>
+        <p class="lead" data-frag="3">The tablet holds state. The services don't. That split is what makes both of them scale.</p>
+      </div>
+      <aside class="notes-src">
+        <li>Start with the tablet: it talks to hardware, keeps the active cart in memory, and persists a local datastore so it can sell offline.</li>
+        <li>→ The services: stateless, behind a load balancer, cache outside the pod. Any instance can serve any request.</li>
+        <li>→ Tracing ties it together. → The split.</li>
+        <li>Expert detail: in-memory alone would lose a sale on a reboot; that's why the outbox is persisted.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="core-jobs" data-act="Act 1 · The POS" data-seg="act1" data-title="What a POS must never get wrong">
+      <div class="wrap">
+        <div class="eyebrow">The non-negotiables</div>
+        <h2>Scan, total, pay, refund. Every time, in milliseconds.</h2>
+        <div class="trio">
+          <div class="card"><h3>Stateless and horizontal</h3><p class="muted">Add instances at opening time, remove them at night. No sticky sessions.</p></div>
+          <div class="card"><h3>Low latency</h3><p class="muted">Goroutines for fan-out, connection pools and timeouts tuned per dependency.</p></div>
+          <div class="card"><h3>Fault tolerant</h3><p class="muted">Retries with backoff, and idempotency keys so a retry never charges twice.</p></div>
+          <div class="card"><h3>Strict security</h3><p class="muted">Tokenized payments, least privilege between services, every call traced.</p></div>
+        </div>
+        <p class="lead">Predictable is the feature. Agents don't replace any of this.</p>
+      </div>
+      <aside class="notes-src">
+        <li>This is where you say the line from your notes: traditional architectures are not going anywhere.</li>
+        <li>Idempotency keys are the detail experts listen for: retries are only safe when a step can run twice.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="saga" data-act="Act 1 · The POS" data-seg="act1" data-title="Checkout is a saga" data-frags="3">
+      <div class="wrap">
+        <div class="eyebrow">Checkout spans five services</div>
+        <h2>Checkout is a saga, not a distributed lock</h2>
+        <p class="muted">Each step is a local transaction in one service. No step holds a lock while it waits for the next. If one fails, the earlier steps are undone by compensations, in reverse order.</p>
+        <div class="saga" id="sagaBox">
+          <div class="head"><span></span><span>Step</span><span>Compensation</span></div>
+          <div class="row r1"><span class="k">1</span><span>Reserve inventory</span><span class="comp">Release inventory</span></div>
+          <div class="row r2"><span class="k">2</span><span>Redeem loyalty points</span><span class="comp">Restore points</span></div>
+          <div class="row r3"><span class="k">3</span><span>Authorize payment <span class="mark" id="sagaMark"></span></span><span class="comp">Void the authorization</span></div>
+          <div class="row r4"><span class="k">4</span><span>Create the order</span><span class="comp">Cancel the order</span></div>
+          <div class="row r5"><span class="k">5</span><span>Print and sync the receipt</span><span class="comp">(last step, nothing after it)</span></div>
+        </div>
+        <p class="lead" data-frag="3">The price: no isolation. Other services can see the in-between states, so the system is eventually consistent.</p>
+      </div>
+      <aside class="notes-src">
+        <li>→ all steps succeed. → payment fails at step 3. → compensations run for steps 2 and 1, and the trade-off appears.</li>
+        <li>Precision: a saga is an alternative to a two-phase commit, not an implementation of one.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="saga-code" data-act="Act 1 · The POS" data-seg="act1" data-title="The saga in Go">
+      <div class="wrap">
+        <div class="codehead"><span class="lbl">The saga in Go</span><span class="muted">Compensations must outlive the request that started them.</span></div>
+        <pre class="code" data-src="c-saga" data-hl="10,12"></pre>
+        <p class="muted small">A production saga also persists its progress, so a crash mid-checkout resumes or compensates on restart.</p>
+      </div>
+      <aside class="notes-src">
+        <li>Point at <code>context.WithoutCancel</code>: if the guest walks away and the request is canceled, the refund must still happen.</li>
+        <li>Steps must be idempotent, because compensations and retries can run more than once.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="offline" data-act="Act 1 · The POS" data-seg="act1" data-title="Offline-first, eventually consistent">
+      <div class="wrap">
+        <div class="eyebrow">When the network drops at 9:05</div>
+        <h2>Real-time when online, reconciled when not</h2>
+        <div class="vs">
+          <div class="card">
+            <div class="eyebrow">Online</div>
+            <h3>Inventory and loyalty sync in real time</h3>
+            <p class="muted">Every sale updates stock and points as it happens. Other registers see it within seconds.</p>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Offline</div>
+            <h3>The tablet keeps selling from its local datastore</h3>
+            <p class="muted">Sales go to the outbox under stricter rules: an offline sale limit, no point redemptions, refunds wait.</p>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Back online</div>
+            <h3>The outbox replays, idempotently</h3>
+            <p class="muted">Each event carries its idempotency key, so a replay can't double-count a sale. Conflicts go to a person.</p>
+          </div>
+        </div>
+      </div>
+      <aside class="notes-src">
+        <li>This resolves the tension between "offline-first" and "real-time sync": real-time is a property of the online mode only.</li>
+        <li>The offline rules (sale limit, no redemptions, deferred refunds) are my proposal; tune them per business.</li>
+        <li>Offline card payments depend on the payment provider supporting store-and-forward.</li>
+      </aside>
+    </section>
+
+    <!-- ================= ACT 2 ================= -->
+    <section class="scene day" id="thesis" data-act="Act 2 · The agents" data-seg="act2" data-title="The thesis" data-clock="9:03 AM" data-frags="2">
+      <div class="wrap">
+        <div class="eyebrow">Act 2 · Where agents fit</div>
+        <div class="thesis">
+          <div class="speech">"Find me a Ceiba Park T-shirt under $30."</div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <pre class="code" data-src="c-intent" style="margin:0"></pre>
+        </div>
+        <p class="lead" data-frag="1">Agents turn the unstructured part of the operation into structure.</p>
+        <p class="lead" data-frag="2"><strong>Agents propose. Go services decide, execute and record.</strong></p>
+      </div>
+      <aside class="notes-src">
+        <li>This is the thesis of the whole talk. Read the second line slowly.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="agents" data-act="Act 2 · The agents" data-seg="act2" data-title="Two agents, least privilege">
+      <div class="wrap">
+        <div class="eyebrow">More than one agent, each with less power</div>
+        <h2>Two agents, and two things that are not agents</h2>
+        <div class="agents">
+          <div class="card agent">
+            <h3>Concierge</h3>
+            <span class="who">Guest-facing · simple tasks on the tablet, multi-step in the agent service</span>
+            <ul class="can"><li><b>Can</b> search the catalog, check stock, build a cart</li><li><b>Can</b> propose a cart with points to redeem</li></ul>
+            <ul class="cannot"><li><b>Cannot</b> set a price, take a payment or issue a refund</li></ul>
+            <div class="chips"><span>catalog.search</span><span>inventory.check</span><span>loyalty.balance</span><span>cart.propose</span></div>
+          </div>
+          <div class="card agent">
+            <h3>Associate</h3>
+            <span class="who">Staff-facing, for the cashier and shop lead</span>
+            <ul class="can"><li><b>Can</b> look up orders, stock in other shops, exchanges</li><li><b>Can</b> propose a refund, with a reason</li></ul>
+            <ul class="cannot"><li><b>Cannot</b> execute a refund without a staff approval</li></ul>
+            <div class="chips"><span>order.lookup</span><span>inventory.query</span><span>refund.propose</span></div>
+          </div>
+          <div class="card agent det">
+            <h3>Not agents</h3>
+            <span class="who">Deterministic Go services</span>
+            <ul><li><b>Rules service</b> validates every proposal</li><li><b>Saga orchestrator</b> executes what passed</li><li><b>Audit log</b> records all of it</li></ul>
+          </div>
+        </div>
+      </div>
+      <aside class="notes-src">
+        <li>Why two agents: different users, different tools, different blast radius. A guest-facing agent should never have refund tools.</li>
+        <li>The third card is the point: the parts that touch money are not agents.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="placement" data-act="Act 2 · The agents" data-seg="act2" data-title="Where the agents run" data-frags="2">
+      <div class="wrap">
+        <div class="eyebrow">Where the agent loop runs</div>
+        <h2>Simple on the tablet, multi-step in Go</h2>
+        <div style="overflow-x:auto">
+        <svg class="archsvg" viewBox="0 0 1000 420" role="img" aria-label="The tablet runs the router, redaction and an on-device loop; the backend runs a stateless Go agent service with the cloud model">
+          <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+          <rect class="bx edge" x="20" y="30" width="420" height="360" rx="14"/>
+          <text class="tt" x="40" y="64">Register tablet</text>
+          <rect class="bx agentbx" x="40" y="82" width="380" height="66" rx="10"/>
+          <text class="t1" x="56" y="108">Router</text><text class="t2" x="56" y="132">decides where the loop runs, once per request</text>
+          <rect class="bx" x="40" y="162" width="380" height="66" rx="10"/>
+          <text class="t1" x="56" y="188">Redaction</text><text class="t2" x="56" y="212">card-like numbers masked before anything leaves</text>
+          <rect class="bx" x="40" y="242" width="380" height="66" rx="10"/>
+          <text class="t1" x="56" y="268">On-device loop</text><text class="t2" x="56" y="292">on-device model, tools over the local datastore</text>
+          <rect class="bx" x="40" y="322" width="380" height="54" rx="10"/>
+          <text class="t1" x="56" y="345">Working memory · local rules</text><text class="t2" x="56" y="365">so a proposal can be validated offline</text>
+          <g data-frag="1">
+            <path class="ed" d="M420 115H558" marker-end="url(#ar3)"/>
+            <text class="lab" x="500" y="103" text-anchor="middle" style="font-size:11.5px">online, multi-step</text>
+            <rect class="bx backend" x="560" y="30" width="420" height="360" rx="14"/>
+            <text class="tt" x="580" y="64">Backend · stateless Go</text>
+            <rect class="bx agentbx" x="580" y="82" width="380" height="66" rx="10"/>
+            <text class="t1" x="596" y="108">Agent service</text><text class="t2" x="596" y="132">the agent loop, one model per run</text>
+            <path class="ed" d="M770 148V160" marker-end="url(#ar3)"/>
+            <rect class="bx" x="580" y="162" width="380" height="66" rx="10"/>
+            <text class="t1" x="596" y="188">Cloud model</text><text class="t2" x="596" y="212">sees redacted context and tokens only</text>
+            <rect class="bx svc" x="580" y="242" width="380" height="66" rx="10"/>
+            <text class="t1" x="596" y="268">Rules service · saga</text><text class="t2" x="596" y="292">validate and execute every proposal</text>
+            <rect class="bx svc" x="580" y="322" width="380" height="54" rx="10"/>
+            <text class="t1" x="596" y="355">Catalog · inventory · loyalty · payments</text>
+          </g>
+        </svg>
+        </div>
+        <p class="lead" data-frag="2">Two loops, one contract: both end in a cart proposal checked by the same rules.</p>
+      </div>
+      <aside class="notes-src">
+        <li>Start with the tablet: the router, redaction, an on-device loop and a local copy of the rules. That's enough to help a guest offline.</li>
+        <li>→ The backend: a stateless Go agent service with the cloud model, next to the services it calls as tools.</li>
+        <li>→ The contract: whichever loop ran, its proposal goes to the same rules before anything is sold.</li>
+        <li>The honest cost: two loop implementations, one in the tablet app's language and one in Go, to keep in sync. Shared tool schemas and the shared proposal contract keep them aligned.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="models" data-act="Act 2 · The agents" data-seg="act2" data-title="On-device and cloud models">
+      <div class="wrap">
+        <div class="eyebrow">Two models, one router</div>
+        <h2>On the tablet when it can, in the cloud when it must</h2>
+        <div class="vs">
+          <div class="card">
+            <div class="eyebrow">On-device model</div>
+            <dl class="kv">
+              <dt>Good at</dt><dd>parsing intent, simple catalog search, short answers</dd>
+              <dt>Latency</dt><dd>a few hundred milliseconds</dd>
+              <dt>Offline</dt><dd>yes, the only model available</dd>
+              <dt>Data</dt><dd>never leaves the tablet</dd>
+            </dl>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Cloud model</div>
+            <dl class="kv">
+              <dt>Good at</dt><dd>multi-step flows: loyalty, bundles, exchanges</dd>
+              <dt>Latency</dt><dd>one to a few seconds</dd>
+              <dt>Offline</dt><dd>no; the router falls back</dd>
+              <dt>Data</dt><dd>redacted context and tokens only</dd>
+            </dl>
+          </div>
+        </div>
+        <pre class="code" data-src="c-router" data-hl="2,4,6"></pre>
+      </div>
+      <aside class="notes-src">
+        <li>The router is deterministic code, not a model. It runs once per request, outside any loop, so a run never switches models halfway.</li>
+        <li>Both loops implement the same Runner interface: Run(ctx, task) returns a CartProposal.</li>
+        <li>If the agent-service call fails mid-request, the tablet falls back to the on-device loop and tells the guest what it can't do offline.</li>
+        <li>Latencies are illustrative; measure your own models on your own hardware.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="harness" data-act="Act 2 · The agents" data-seg="act2" data-title="The agent service">
+      <div class="wrap">
+        <div class="codehead"><span class="lbl">The agent service · backend</span><span class="callback">Stateless Go</span><span class="muted">A model, a loop and an allow-list of tools, inside a budget.</span></div>
+        <pre class="code sm" data-src="c-harness" data-hl="4,5,14,15,23"></pre>
+      </div>
+      <aside class="notes-src">
+        <li>This is the backend half of option C. Point at the three parts: the model (line 4), the tools (line 5), the loop (the for statement).</li>
+        <li>The model is chosen once, before the loop, by the tablet's router. Nothing inside the loop can switch it.</li>
+        <li>No redaction here: the tablet redacted the working memory before sending it. No state either: everything the run needs arrives in the request.</li>
+        <li>The loop never executes anything with money: it ends by returning a CartProposal, which goes to the rules service.</li>
+        <li>Tool allow-list is the permission system: if a tool isn't in the map, the agent can't call it. The budget caps time and steps so a confused model can't hold up the line.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="memory" data-act="Act 2 · The agents" data-seg="act2" data-title="The memory layer" data-frags="7">
+      <div class="wrap">
+        <div class="eyebrow">A memory layer for each part of the system</div>
+        <h2>Four kinds of agent memory, and two things that aren't</h2>
+        <div class="tiers">
+          <div class="tier th"><span>Memory</span><span>Type</span><span>Lives in</span><span>Lasts</span><span>Agents can</span><span>Rule</span></div>
+          <div class="tier" data-frag="1"><span><b>Working</b>the conversation right now</span><span class="typecell" data-l="Type">Short-term · in context</span><span data-l="Lives in">tablet RAM, sent with each agent-service request</span><span data-l="Lasts">one session</span><span data-l="Agents can">read and write</span><span class="rulecell" data-l="Rule">redacted on entry; wiped at checkout</span></div>
+          <div class="tier" data-frag="2"><span><b>Store knowledge</b>catalog, prices, policies</span><span class="typecell" data-l="Type">Semantic · retrieved</span><span data-l="Lives in">local datastore, synced</span><span data-l="Lasts">until the next version</span><span data-l="Agents can">read through tools</span><span class="rulecell" data-l="Rule">versioned, so every answer names its snapshot</span></div>
+          <div class="tier" data-frag="3"><span><b>Guest memory</b>purchase history, preferences</span><span class="typecell" data-l="Type">Episodic → profile · retrieved</span><span data-l="Lives in">cloud, keyed by loyalty token</span><span data-l="Lasts">a retention period</span><span data-l="Agents can">read one summary per session</span><span class="rulecell" data-l="Rule">loyalty opt-in only; no card data, ever</span></div>
+          <div class="tier" data-frag="4"><span><b>Instructions</b>system prompt, tool specs, router policy</span><span class="typecell" data-l="Type">Procedural · in code</span><span data-l="Lives in">code and config, deployed</span><span data-l="Lasts">until the next release</span><span data-l="Agents can">follow it, never change it</span><span class="rulecell" data-l="Rule">reviewed like code; improved offline from the decision log</span></div>
+          <div class="tier notmem" data-frag="5"><span><b>Cart state</b>items, sizes, points</span><span class="typecell" data-l="Type">Not agent memory · state it observes</span><span data-l="Lives in">tablet cart store, persisted</span><span data-l="Lasts">until the sale syncs</span><span data-l="Agents can">read; change only by proposal</span><span class="rulecell" data-l="Rule">owned by the POS, never by the model</span></div>
+          <div class="tier notmem" data-frag="6"><span><b>Decision log</b>what was proposed and why</span><span class="typecell" data-l="Type">Not agent memory · a record of it</span><span data-l="Lives in">outbox, then cloud</span><span data-l="Lasts">per audit policy</span><span data-l="Agents can">nothing at runtime</span><span class="rulecell" data-l="Rule">append-only; written by Go, not by the agent</span></div>
+        </div>
+        <p class="lead" data-frag="7">Only working memory sits in the context. The rest is pulled through tools, or never read at all.</p>
+      </div>
+      <aside class="notes-src">
+        <li>Four rows of agent memory first: short-term, semantic, episodic, procedural. Then the two that only look like memory.</li>
+        <li>Pull-on-read: store knowledge and guest memory reach the model through tools, so the context stays small and private.</li>
+        <li>Procedural memory is the answer to "where do the instructions live?": in code and config, versioned and deployed.</li>
+        <li>The cart is the environment the agent acts on; the POS owns it. The decision log is a record of the agent, not memory for it: an agent that read its own log could learn from a bad decision.</li>
+        <li>Learning happens offline: people review the decision log and promote good patterns into procedural memory.</li>
+        <li>Guest memory is personal data: consent, retention and minimization apply even though PCI doesn't.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="contract" data-act="Act 2 · The agents" data-seg="act2" data-title="Propose, validate, execute">
+      <div class="wrap">
+        <div class="codehead"><span class="lbl">The contract</span><span class="muted">The agent proposes SKUs and quantities. It never sends a price.</span></div>
+        <pre class="code sm" data-src="c-contract" data-hl="3,5,13,18,21"></pre>
+      </div>
+      <aside class="notes-src">
+        <li>Prices come from the catalog inside Validate, so a model can't invent one.</li>
+        <li>A rejection goes back to the agent as an observation, the same way a failed tool call does.</li>
+        <li>The guest confirms on screen before the saga runs. That's the human in the loop for money.</li>
+      </aside>
+    </section>
+
+    <!-- ================= ACT 3 ================= -->
+    <section class="scene" id="challenges" data-act="Act 3 · The controls" data-seg="act3" data-title="What agents break">
+      <div class="wrap">
+        <div class="eyebrow">Act 3 · What agents bring with them</div>
+        <h2>Three new problems at the register</h2>
+        <div class="trio">
+          <div class="card"><h3>Reasoning latency</h3><p class="muted">A model thinks in seconds. A checkout line moves in milliseconds.</p></div>
+          <div class="card"><h3>Privacy and PCI</h3><p class="muted">A conversation can contain anything, including a card number read out loud.</p></div>
+          <div class="card"><h3>Autonomy and explainability</h3><p class="muted">"The model decided" is not an answer an auditor accepts.</p></div>
+        </div>
+        <p class="lead">The controls: guardrails, external rule validation and structured audit logs.</p>
+      </div>
+      <aside class="notes-src"><li>Name the three problems, then one scene each.</li></aside>
+    </section>
+
+    <section class="scene" id="latency" data-act="Act 3 · The controls" data-seg="act3" data-title="Latency: two paths">
+      <div class="wrap">
+        <div class="eyebrow">Problem 1 · Latency</div>
+        <h2>The agent never sits on the scan path</h2>
+        <div class="lanes">
+          <div class="lane2">
+            <div class="nm">Scan path, pure Go <span>scan → price → total</span></div>
+            <div class="bars"><i class="go" style="width:4%" title="scan"></i><i class="go" style="width:3%"></i><i class="go" style="width:3%"></i><i style="flex:1"></i></div>
+          </div>
+          <div class="lane2">
+            <div class="nm">Agent path, on-device <span>intent → search → answer</span></div>
+            <div class="bars"><i class="dev" style="width:12%">intent</i><i class="tool" style="width:8%">tools</i><i class="dev" style="width:9%">answer</i><i style="flex:1"></i></div>
+          </div>
+          <div class="lane2">
+            <div class="nm">Agent path, cloud <span>multi-step reasoning</span></div>
+            <div class="bars"><i class="dev" style="width:12%">intent</i><i class="tool" style="width:8%">tools</i><i class="cloud" style="width:58%">cloud reasoning</i><i style="flex:1"></i></div>
+          </div>
+          <div class="scale"><span>0</span><span>0.5 s</span><span>1 s</span><span>1.5 s</span><span>2 s</span></div>
+        </div>
+        <p class="muted small">Illustrative timings. The scan path runs in tens of milliseconds and never waits for a model.</p>
+      </div>
+      <aside class="notes-src">
+        <li>The register keeps scanning while the agent thinks. Agents help before checkout, not inside it.</li>
+        <li>Budgets from the harness cap the agent path: past the limit, the agent says it couldn't finish.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="pci" data-act="Act 3 · The controls" data-seg="act3" data-title="PCI: the model never sees card data">
+      <div class="wrap">
+        <div class="eyebrow">Problem 2 · Privacy and PCI</div>
+        <h2>The model never sees card data</h2>
+        <div style="overflow-x:auto">
+        <svg class="flowsvg" viewBox="0 0 1000 280" role="img" aria-label="Card data stays inside the payment boundary; agents only see a token" style="max-width:1040px">
+          <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+          <rect class="cde" x="14" y="40" width="430" height="150" rx="14"/>
+          <text class="cdel" x="30" y="30">Cardholder data environment</text>
+          <rect class="bx" x="34" y="70" width="170" height="96" rx="10"/><text class="t1" x="119" y="112" text-anchor="middle">Card reader</text><text class="t2" x="119" y="136" text-anchor="middle">encrypts at the tap</text>
+          <path class="ed" d="M204 118H250" marker-end="url(#ar2)"/>
+          <rect class="bx" x="252" y="70" width="172" height="96" rx="10"/><text class="t1" x="338" y="112" text-anchor="middle">Payment provider</text><text class="t2" x="338" y="136" text-anchor="middle">returns a token</text>
+          <path class="ed" d="M424 118H520" marker-end="url(#ar2)"/>
+          <text class="tok" x="472" y="106" text-anchor="middle">tok_7Q2…</text>
+          <rect class="bx" x="522" y="70" width="190" height="96" rx="10"/><text class="t1" x="617" y="112" text-anchor="middle">Payments service</text><text class="t2" x="617" y="136" text-anchor="middle">stores the token only</text>
+          <path class="ed" d="M712 118H778" marker-end="url(#ar2)"/>
+          <rect class="bx" x="780" y="70" width="200" height="96" rx="10"/><text class="t1" x="880" y="112" text-anchor="middle">Agents</text><text class="t2" x="880" y="136" text-anchor="middle">see "tok_7Q2…" at most</text>
+          <rect class="bx" x="522" y="206" width="458" height="60" rx="10"/>
+          <text class="t1" x="540" y="232">Redaction guardrail</text><text class="t2" x="540" y="252">anything that looks like a card number is masked before a model sees it</text>
+          <path class="ed" d="M880 206V170" marker-end="url(#ar2)"/>
+        </svg>
+        </div>
+        <p class="lead">Keeping models outside the payment boundary keeps them out of PCI scope.</p>
+      </div>
+      <aside class="notes-src">
+        <li>Guests will read card numbers out loud. The redaction step runs in Go before any model call, on-device or cloud.</li>
+        <li>Guest memory carries purchase history, which is still personal data: consent and retention apply.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="autonomy" data-act="Act 3 · The controls" data-seg="act3" data-title="Autonomy: how far agents go">
+      <div class="wrap">
+        <div class="eyebrow">Problem 3 · Autonomy</div>
+        <h2>Agents stop one rung below the money</h2>
+        <div class="ladder">
+          <div class="rung yes"><span class="lv">1</span><b>Answer and suggest</b><span class="ex">"Two shirts under $30 are in stock here." No approval needed.</span></div>
+          <div class="rung yes"><span class="lv">2</span><b>Propose structured actions</b><span class="ex">A cart proposal, a refund proposal. Always passed to the rules service.</span></div>
+          <div class="rung gate"><span class="lv">3</span><b>Execute after rules and a human</b><span class="ex">The guest confirms a sale, staff approve a refund, then the saga runs.</span></div>
+          <div class="rung no"><span class="lv">4</span><b>Execute on its own</b><span class="ex">Not allowed for anything that moves money or stock.</span></div>
+        </div>
+        <p class="muted">Guardrails sit at every rung: tool allow-lists, budgets, redaction, and rules the model can't argue with.</p>
+      </div>
+      <aside class="notes-src">
+        <li>The ladder is the answer to "stricter controls on autonomy": you choose the rung per action, and money is capped at 3.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="audit" data-act="Act 3 · The controls" data-seg="act3" data-title="Explainable decisions">
+      <div class="wrap">
+        <div class="codehead"><span class="lbl">Explainable decision logs</span><span class="muted">Structured, append-only, written by Go. One record per decision, joined to the trace.</span></div>
+        <pre class="code" data-src="c-audit" data-hl="5,6,7"></pre>
+      </div>
+      <aside class="notes-src">
+        <li>"Why did the register give that discount?" is answered by this record, not by asking the model again.</li>
+        <li>The trace ID joins the decision to every service call in distributed tracing.</li>
+      </aside>
+    </section>
+
+    <!-- ================= ACT 4 ================= -->
+    <section class="scene" id="demo" data-act="Act 4 · Demo" data-seg="demo" data-title="Demo: the T-shirt" data-clock="9:03 AM">
+      <div class="wrap">
+        <div class="demo-top">
+          <div style="display:grid;gap:4px">
+            <div class="eyebrow">Gate One Gifts · register 2 · simulated</div>
+            <div class="demo-q">"Find me a Ceiba Park T-shirt under $30."</div>
+          </div>
+          <div class="controls">
+            <button class="tog" id="dStep" type="button" title="Show the next event (S)">Step (S)</button>
+            <button class="tog go" id="dRun" type="button" title="Play the whole run (R)">Run (R)</button>
+          </div>
+        </div>
+        <div class="scen" id="dScen"></div>
+        <div class="dgrid">
+          <div class="dpanel"><h3><span>Register tablet</span><span id="dModel"></span></h3><div class="scroller" id="dChat"></div></div>
+          <div class="dpanel"><h3><span>System trace</span><span>trace tr-7f3a</span></h3><div class="scroller"><ul class="trc" id="dTrace"></ul></div></div>
+        </div>
+        <div class="dpanel"><h3><span>Decision log</span><span>append-only</span></h3><div class="auditlog" id="dAudit"></div></div>
+        <p class="dstatus" id="dStatus" aria-live="polite"></p>
+        <p class="simnote">Scripted simulation of the proposed design. Ceiba Park, its products and timings are fictional and illustrative.</p>
+      </div>
+      <aside class="notes-src">
+        <li>Order on stage: 1 Normal, then 3 Model miscounts, then 4 Payment declined. Keep 2 Offline for Q&amp;A, or run it if time allows.</li>
+        <li>S steps one event at a time so you can narrate; R plays it through. Keys 1–4 pick a scenario.</li>
+        <li>Point at the decision log after each run: every proposal and verdict is there.</li>
+      </aside>
+    </section>
+
+    <section class="scene" id="recap" data-act="Act 4 · Demo" data-seg="demo" data-title="What just happened">
+      <div class="wrap">
+        <h2>What just happened</h2>
+        <div class="trio">
+          <div class="card"><div class="eyebrow">Normal</div><h3>Language in, structure out</h3><p class="muted">The on-device model searched; the cloud model built the cart; Go priced and sold it.</p></div>
+          <div class="card"><div class="eyebrow">Model miscounts</div><h3>Rules caught the math</h3><p class="muted">The agent proposed more points than the guest had. Validation rejected it; the agent corrected itself.</p></div>
+          <div class="card"><div class="eyebrow">Payment declined</div><h3>The saga undid itself</h3><p class="muted">Points restored, shirt released, nothing charged, and all of it logged.</p></div>
+        </div>
+      </div>
+      <aside class="notes-src"><li>Map each run back to its control: rules, saga, audit log.</li></aside>
+    </section>
+
+    <!-- ================= CLOSE ================= -->
+    <section class="scene rulebg" id="close" data-act="Close" data-seg="close" data-title="Three principles" data-frags="1">
+      <div class="wrap">
+        <div class="rules">
+          <div class="rule compact"><div class="num">1</div><div><div class="txt">Agents propose. Go services decide.</div><p class="es">Los agentes proponen. Los servicios en Go deciden.</p></div></div>
+          <div class="rule compact"><div class="num">2</div><div><div class="txt">The model never touches money or card data</div><p class="es">El modelo nunca toca el dinero ni los datos de la tarjeta.</p></div></div>
+          <div class="rule compact"><div class="num">3</div><div><div class="txt">Every decision leaves a structured trail</div><p class="es">Toda decisión deja un rastro estructurado.</p></div></div>
+        </div>
+        <p class="lead" data-frag="1">Agents handle the unstructured part. Go keeps the part that has to be right.</p>
+      </div>
+      <aside class="notes-src">
+        <li>Say the three principles without looking. → closing line.</li>
+        <li>"Before your questions, let's see what stuck."</li>
+      </aside>
+    </section>
+
+    <!-- ================= POP QUIZ ================= -->
+    <section class="scene night" id="quiz" data-act="Pop quiz" data-seg="quiz" data-title="Pop quiz">
+      <div class="wrap">
+        <div class="eyebrow">Before your questions</div>
+        <h1>Six questions. <em>Hands up.</em></h1>
+        <p class="lead">Raise your hand for A, B, C or D, then we reveal the answer together.</p>
+      </div>
+      <aside class="notes-src"><li>About 30 seconds each. Count hands, then →.</li></aside>
+    </section>
+
+    <section class="scene" id="quiz-1" data-act="Pop quiz" data-seg="quiz" data-title="Quiz 1: sagas" data-frags="1">
+      <div class="wrap">
+        <div class="qhead"><div class="eyebrow">Question 1 of 6</div><span class="rtag">Saga</span></div>
+        <p class="qtext">Compared with a two-phase commit, what does a saga give up?</p>
+        <div class="opts">
+          <div class="opt"><span class="l">A</span><span class="t">Durability</span></div>
+          <div class="opt right"><span class="l">B</span><span class="t">Isolation</span></div>
+          <div class="opt"><span class="l">C</span><span class="t">Availability</span></div>
+          <div class="opt"><span class="l">D</span><span class="t">Retries</span></div>
+        </div>
+        <div class="explain" data-frag="1"><span class="rtag">B</span><p>Each local transaction commits on its own, so other services can see the in-between states. That's why the system is eventually consistent.</p></div>
+      </div>
+      <aside class="notes-src"><li>Availability is the tempting answer; sagas actually improve it by avoiding long-lived locks.</li></aside>
+    </section>
+
+    <section class="scene" id="quiz-2" data-act="Pop quiz" data-seg="quiz" data-title="Quiz 2: compensation" data-frags="1">
+      <div class="wrap">
+        <div class="qhead"><div class="eyebrow">Question 2 of 6</div><span class="rtag">Saga</span></div>
+        <p class="qtext">Payment was authorized, then creating the order fails. What's the compensation for the payment step?</p>
+        <div class="opts">
+          <div class="opt"><span class="l">A</span><span class="t">Retry the order forever</span></div>
+          <div class="opt right"><span class="l">B</span><span class="t">Void the authorization</span></div>
+          <div class="opt"><span class="l">C</span><span class="t">Ask the model what to do</span></div>
+          <div class="opt"><span class="l">D</span><span class="t">Delete the decision log entry</span></div>
+        </div>
+        <div class="explain" data-frag="1"><span class="rtag">B</span><p>Each step carries its own undo. Compensations run in reverse order, in Go, and they're logged like everything else.</p></div>
+      </div>
+      <aside class="notes-src"><li>If someone says C, that's the whole talk in one wrong answer.</li></aside>
+    </section>
+
+    <section class="scene" id="quiz-3" data-act="Pop quiz" data-seg="quiz" data-title="Quiz 3: card data" data-frags="1">
+      <div class="wrap">
+        <div class="qhead"><div class="eyebrow">Question 3 of 6</div><span class="rtag">PCI</span></div>
+        <p class="qtext">What does the agent see when the guest pays?</p>
+        <div class="opts">
+          <div class="opt"><span class="l">A</span><span class="t">The encrypted card number</span></div>
+          <div class="opt"><span class="l">B</span><span class="t">The last four digits and the expiry date</span></div>
+          <div class="opt right"><span class="l">C</span><span class="t">A payment token reference</span></div>
+          <div class="opt"><span class="l">D</span><span class="t">The full card number, but only on-device</span></div>
+        </div>
+        <div class="explain" data-frag="1"><span class="rtag">C</span><p>Card data stays inside the payment boundary. Agents handle a token at most, which keeps them out of PCI scope.</p></div>
+      </div>
+      <aside class="notes-src"><li>D is the trap: "on-device" doesn't make card data safe to put in a model.</li></aside>
+    </section>
+
+    <section class="scene" id="quiz-4" data-act="Pop quiz" data-seg="quiz" data-title="Quiz 4: the cart" data-frags="1">
+      <div class="wrap">
+        <div class="qhead"><div class="eyebrow">Question 4 of 6</div><span class="rtag">Memory</span></div>
+        <p class="qtext">Where does the guest's current cart live?</p>
+        <div class="opts">
+          <div class="opt"><span class="l">A</span><span class="t">In the model's context window</span></div>
+          <div class="opt right"><span class="l">B</span><span class="t">In the tablet's cart store, read by the agent through a tool</span></div>
+          <div class="opt"><span class="l">C</span><span class="t">In the guest's long-term memory</span></div>
+          <div class="opt"><span class="l">D</span><span class="t">In the decision log</span></div>
+        </div>
+        <div class="explain" data-frag="1"><span class="rtag">B</span><p>The POS owns the cart. The agent reads it and changes it only by proposal, so a confused model can't corrupt a sale.</p></div>
+      </div>
+      <aside class="notes-src"><li>Callback to the memory layer: short-term memory was split in two.</li></aside>
+    </section>
+
+    <section class="scene" id="quiz-5" data-act="Pop quiz" data-seg="quiz" data-title="Quiz 5: retries" data-frags="1">
+      <div class="wrap">
+        <div class="qhead"><div class="eyebrow">Question 5 of 6</div><span class="rtag">Go</span></div>
+        <p class="qtext">The outbox replays sales after the network comes back. What makes that safe?</p>
+        <div class="opts">
+          <div class="opt right"><span class="l">A</span><span class="t">Idempotency keys on every event</span></div>
+          <div class="opt"><span class="l">B</span><span class="t">Holding a lock until the replay finishes</span></div>
+          <div class="opt"><span class="l">C</span><span class="t">Replaying through the cloud model</span></div>
+          <div class="opt"><span class="l">D</span><span class="t">Stateful services</span></div>
+        </div>
+        <div class="explain" data-frag="1"><span class="rtag">A</span><p>A replayed event with a key the service has already seen is acknowledged and ignored, so nothing is counted or charged twice.</p></div>
+      </div>
+      <aside class="notes-src"><li>Same idea makes saga compensations safe to retry.</li></aside>
+    </section>
+
+    <section class="scene" id="quiz-6" data-act="Pop quiz" data-seg="quiz" data-title="Quiz 6: the scan path" data-frags="1">
+      <div class="wrap">
+        <div class="qhead"><div class="eyebrow">Question 6 of 6</div><span class="rtag">Latency</span></div>
+        <p class="qtext">The scanner beeps and the total must appear now. Which path computes it?</p>
+        <div class="opts">
+          <div class="opt"><span class="l">A</span><span class="t">The cloud model</span></div>
+          <div class="opt"><span class="l">B</span><span class="t">The on-device model</span></div>
+          <div class="opt right"><span class="l">C</span><span class="t">The Go POS path, with no model involved</span></div>
+          <div class="opt"><span class="l">D</span><span class="t">Whichever answers first</span></div>
+        </div>
+        <div class="explain" data-frag="1"><span class="rtag">C</span><p>Agents help before checkout. Totals, prices and payments stay on the deterministic path that answers in milliseconds.</p></div>
+      </div>
+      <aside class="notes-src"><li>The last answer is the thesis again.</li></aside>
+    </section>
+
+    <section class="scene night" id="thanks" data-act="Q&amp;A" data-seg="qa" data-title="Thank you">
+      <div class="wrap split" style="align-items:center">
+        <div style="display:grid;gap:16px">
+          <div class="eyebrow">Gates are open</div>
+          <h1>Thank you. <em>Your questions?</em></h1>
+          <p class="lead">Agents propose. Go services decide.</p>
+          <p style="font-family:var(--f-mono)"><a class="repo" href="https://github.com/luillyfe/sourcing-agent" target="_blank" rel="noopener">github.com/luillyfe/sourcing-agent</a></p>
+        </div>
+        <img class="qrimg" src="data:image/png;base64,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" alt="QR code linking to github.com/luillyfe/sourcing-agent">
+      </div>
+      <aside class="notes-src">
+        <li>The QR opens github.com/luillyfe/sourcing-agent. Leave it up during Q&amp;A so people can scan it.</li>
+        <li>Questions about any company's real systems: "This is a proposal; Ceiba Park is fictional."</li>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="rail">
+    <div class="nav">
+      <button class="ibtn" id="prev" type="button" aria-label="Previous">←</button>
+      <button class="ibtn" id="next" type="button" aria-label="Next">→</button>
+    </div>
+    <div class="acts" id="acts"></div>
+    <div class="nav">
+      <span class="count" id="count">1 / 1</span>
+      <button class="ibtn hide-sm" id="notesBtn" type="button" title="Speaker notes (N)">Notes</button>
+      <button class="ibtn" id="ovBtn" type="button" title="All scenes (O)">All</button>
+      <button class="ibtn hide-sm" id="fsBtn" type="button" title="Fullscreen (F)">⤢</button>
+    </div>
+  </footer>
+</div>
+
+<div class="notes" id="notes" hidden>
+  <div class="nh"><span id="notesTitle">Notes</span><span>Visible to the room if you mirror your screen · N to close</span></div>
+  <ul id="notesList"></ul>
+</div>
+
+<div class="overview" id="overview" hidden>
+  <div class="head">
+    <h2>All scenes</h2>
+    <div class="keys">
+      <span><kbd>→</kbd> <kbd>Space</kbd> next</span><span><kbd>←</kbd> back</span><span><kbd>N</kbd> notes</span>
+      <span><kbd>T</kbd> timer</span><span><kbd>F</kbd> fullscreen</span><span><kbd>O</kbd> this view</span>
+      <span>Demo: <kbd>1</kbd>–<kbd>4</kbd> scenario, <kbd>S</kbd> step, <kbd>R</kbd> run</span>
+    </div>
+    <button class="ibtn" id="ovClose" type="button">Close</button>
+  </div>
+  <div class="grid" id="ovGrid"></div>
+</div>
+
+<!-- ================= CODE SOURCES ================= -->
+<script type="text/plain" id="c-saga">
+type Step struct {
+    Name       string
+    Do         func(ctx context.Context) error
+    Compensate func(ctx context.Context) error
+}
+
+func RunSaga(ctx context.Context, steps []Step) error {
+    for i, s := range steps {
+        if err := s.Do(ctx); err != nil {
+            undo := context.WithoutCancel(ctx) // a refund must not die with the request
+            for j := i - 1; j >= 0; j-- {      // undo in reverse order
+                if cerr := steps[j].Compensate(undo); cerr != nil {
+                    return errors.Join(err, fmt.Errorf("compensate %s: %w", steps[j].Name, cerr))
+                }
+            }
+            return fmt.Errorf("saga failed at %s: %w", s.Name, err)
+        }
+    }
+    return nil
+}
+</script>
+<script type="text/plain" id="c-intent">
+{
+  "intent": "search",
+  "category": "t-shirt",
+  "collection": "ceiba-park",
+  "max_price": 30.00
+}
+</script>
+<script type="text/plain" id="c-router">
+// Runs on the tablet, once per request: it picks where the loop runs.
+func (r Router) Route(online bool, t Task) Runner {
+    if !online || t.Simple() {
+        return r.OnDevice // tablet loop: on-device model, local datastore
+    }
+    return r.AgentService // backend loop: stateless Go, cloud model
+}
+</script>
+<script type="text/plain" id="c-harness">
+// Agent service: stateless Go behind the load balancer.
+type Agent struct {
+    Name   string
+    Model  LLM             // the cloud model, fixed for the whole run
+    Tools  map[string]Tool // the allow-list: nothing else exists
+    Budget Budget          // time, steps, tokens
+}
+
+// The loop: ask the model, run the tools it asks for, repeat.
+func (a *Agent) Run(ctx context.Context, req Request) (CartProposal, error) {
+    ctx, cancel := context.WithTimeout(ctx, a.Budget.Time)
+    defer cancel()
+    msgs := req.Working // working memory from the tablet, already redacted
+    for step := 0; step < a.Budget.MaxSteps; step++ {
+        reply, err := a.Model.Complete(ctx, msgs, specs(a.Tools))
+        if err != nil {
+            return CartProposal{}, err
+        }
+        if reply.Proposal != nil {
+            return *reply.Proposal, nil // done: hand it to the rules service
+        }
+        msgs = append(msgs, reply.AsMessage())
+        msgs = append(msgs, a.runTools(ctx, reply.ToolCalls)...) // allow-listed tools only
+    }
+    return CartProposal{}, ErrBudgetExceeded
+}
+</script>
+<script type="text/plain" id="c-contract">
+type CartProposal struct {
+    SessionID    string
+    Items        []LineItem // SKU and quantity, never a price
+    LoyaltyPts   int
+    PaymentToken string     // a reference, never card data
+    Reason       string     // the agent's explanation, for the log
+}
+
+func (c *Checkout) Submit(ctx context.Context, p CartProposal) (Receipt, error) {
+    priced, verdicts := c.rules.Validate(ctx, p) // prices, stock, limits, policy
+    c.audit.Record(ctx, p, verdicts)
+    if !verdicts.OK() {
+        return Receipt{}, verdicts.Err() // back to the agent as an observation
+    }
+    if err := c.confirm.WithGuest(ctx, priced); err != nil {
+        return Receipt{}, err // the guest said no, or walked away
+    }
+    receipt, err := c.saga.Run(ctx, priced)
+    c.audit.Outcome(ctx, p.SessionID, receipt, err)
+    return receipt, err
+}
+</script>
+<script type="text/plain" id="c-audit">
+type Decision struct {
+    TraceID   string          // joins the distributed trace
+    Agent     string          // "concierge" or "associate"
+    Model     string          // "on-device/v3" or "cloud/…"
+    Proposal  json.RawMessage // exactly what the agent asked for
+    Verdicts  []Verdict       // every rule, pass or fail, with a reason
+    Confirmed bool            // did a person say yes?
+    Outcome   string          // "sold", "rejected", "compensated"
+    At        time.Time
+}
+</script>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const escH = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  /* ---------- Go syntax highlighting ---------- */
+  const tokRe = /(\/\/.*$)|("(?:\\.|[^"\\])*"|`[^`]*`)|\b(func|return|if|else|for|range|var|const|type|struct|interface|package|import|defer|go|select|case|default|switch|break|continue|map|chan|nil|true|false)\b|\b(string|int|bool|error|any|float64|byte)\b|\b(\d+(?:\.\d+)?)\b/g;
+  function hlLine(line) {
+    let out = '', last = 0, m;
+    tokRe.lastIndex = 0;
+    while ((m = tokRe.exec(line))) {
+      out += escH(line.slice(last, m.index));
+      const cls = m[1] ? 'com' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'ty' : 'num';
+      out += '<span class="' + cls + '">' + escH(m[0]) + '</span>';
+      last = m.index + m[0].length;
+      if (m[0].length === 0) tokRe.lastIndex++;
+    }
+    return out + escH(line.slice(last));
+  }
+  function parseHl(spec) {
+    const set = new Set();
+    if (!spec) return set;
+    spec.split(',').forEach((p) => { const [a, b] = p.split('-').map(Number); for (let i = a; i <= (b || a); i++) set.add(i); });
+    return set;
+  }
+  $$('pre[data-src]').forEach((pre) => {
+    const raw = document.getElementById(pre.dataset.src).textContent.replace(/^\n/, '').replace(/\s+$/, '');
+    pre.innerHTML = raw.split('\n').map((l) => '<span class="ln">' + (hlLine(l) || ' ') + '</span>').join('');
+  });
+  function applyHl(pre, f) {
+    let spec = null;
+    for (let k = f; k >= 1; k--) if (pre.hasAttribute('data-hl-' + k)) { spec = pre.getAttribute('data-hl-' + k); break; }
+    if (spec === null) spec = pre.getAttribute('data-hl');
+    const set = parseHl(spec);
+    pre.classList.toggle('has-hl', set.size > 0);
+    $$('.ln', pre).forEach((ln, i) => ln.classList.toggle('hl', set.has(i + 1)));
+  }
+
+  /* ---------- Scenes, fragments, navigation ---------- */
+  const scenes = $$('.scene');
+  let cur = -1, frag = 0, hashLock = false;
+  const fragsOf = (s) => +(s.dataset.frags || 0);
+  const hooks = {};
+
+  function applyFrag(s, f) {
+    $$('[data-frag]', s).forEach((e) => e.classList.toggle('shown', f >= +e.dataset.frag));
+    $$('[data-until]', s).forEach((e) => e.classList.toggle('gone', f >= +e.dataset.until));
+    $$('pre[data-src]', s).forEach((p) => applyHl(p, f));
+    $$('.opts', s).forEach((o) => o.classList.toggle('revealed', f >= 1));
+    if (hooks[s.id] && hooks[s.id].frag) hooks[s.id].frag(f);
+  }
+  function go(i, f = 0) {
+    i = Math.max(0, Math.min(scenes.length - 1, i));
+    const prevScene = scenes[cur];
+    if (prevScene && i !== cur && hooks[prevScene.id] && hooks[prevScene.id].leave) hooks[prevScene.id].leave();
+    const changed = i !== cur;
+    scenes.forEach((s, k) => s.classList.toggle('active', k === i));
+    cur = i; frag = f;
+    const s = scenes[cur];
+    if (changed && hooks[s.id] && hooks[s.id].enter) hooks[s.id].enter();
+    applyFrag(s, frag);
+    s.scrollTop = 0;
+    updateChrome();
+    if (location.hash !== '#' + s.id) { hashLock = true; location.hash = s.id; }
+  }
+  function next() { const s = scenes[cur]; if (frag < fragsOf(s)) { frag++; applyFrag(s, frag); updateChrome(); } else if (cur < scenes.length - 1) go(cur + 1, 0); }
+  function prev() { const s = scenes[cur]; if (frag > 0) { frag--; applyFrag(s, frag); updateChrome(); } else if (cur > 0) go(cur - 1, fragsOf(scenes[cur - 1])); }
+
+  /* ---------- Chrome ---------- */
+  const actNames = [];
+  scenes.forEach((s) => { if (!actNames.includes(s.dataset.act)) actNames.push(s.dataset.act); });
+  const actsEl = $('#acts');
+  actNames.forEach((a) => {
+    const idx = scenes.map((s, i) => (s.dataset.act === a ? i : -1)).filter((i) => i >= 0);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'actseg'; b.style.setProperty('--n', idx.length);
+    b.innerHTML = '<span class="bar"><i></i></span><span class="nm"></span>';
+    b.querySelector('.nm').textContent = a;
+    b.title = 'Jump to ' + a;
+    b.addEventListener('click', () => go(idx[0]));
+    b._idx = idx;
+    actsEl.appendChild(b);
+  });
+  let clockOverride = null;
+  function updateChrome() {
+    const s = scenes[cur];
+    $('#actLabel').textContent = s.dataset.act + ' · ' + s.dataset.title;
+    $('#parkClock').textContent = clockOverride || s.dataset.clock || '';
+    $('#count').textContent = (cur + 1) + ' / ' + scenes.length;
+    $$('.actseg', actsEl).forEach((b) => {
+      const idx = b._idx, first = idx[0], last = idx[idx.length - 1];
+      const p = cur < first ? 0 : cur > last ? 1 : (cur - first + 1) / idx.length;
+      b.querySelector('i').style.width = (p * 100) + '%';
+      b.classList.toggle('cur', cur >= first && cur <= last);
+    });
+    const src = $('.notes-src', s);
+    $('#notesTitle').textContent = (cur + 1) + ' · ' + s.dataset.title;
+    $('#notesList').innerHTML = src ? src.innerHTML : '<li>No notes.</li>';
+    updateTimer();
+  }
+  $$('.notes-src').forEach((a) => (a.hidden = true));
+  const toggleNotes = () => { $('#notes').hidden = !$('#notes').hidden; };
+
+  function openOverview() {
+    const g = $('#ovGrid'); g.innerHTML = '';
+    scenes.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; if (i === cur) b.className = 'cur';
+      b.innerHTML = '<small></small><span></span>';
+      b.querySelector('small').textContent = (i + 1) + ' · ' + s.dataset.act;
+      b.querySelector('span').textContent = s.dataset.title;
+      b.addEventListener('click', () => { closeOverview(); go(i); });
+      g.appendChild(b);
+    });
+    $('#overview').hidden = false;
+    const c = g.querySelector('.cur'); if (c) c.focus();
+  }
+  function closeOverview() { $('#overview').hidden = true; }
+
+  /* ---------- Talk timer ---------- */
+  const segEnd = { open: 4, act1: 14, act2: 26, act3: 33, demo: 39, close: 40, quiz: 43, qa: 45 };
+  let t0 = null;
+  const fmt = (sec) => { const m = Math.floor(sec / 60), s = Math.floor(sec % 60); return m + ':' + String(s).padStart(2, '0'); };
+  function updateTimer() {
+    const el = $('#timer');
+    if (t0 === null) { el.textContent = 'Start timer'; el.className = 'timer'; return; }
+    const sec = (Date.now() - t0) / 1000;
+    const end = segEnd[scenes[cur].dataset.seg] * 60;
+    const behind = sec - end;
+    el.className = 'timer ' + (behind > 0 ? 'behind' : 'onpace');
+    el.textContent = fmt(sec) + ' · ' + (behind > 0 ? fmt(behind) + ' behind' : 'segment ends ' + fmt(end));
+  }
+  function toggleTimer() { t0 = t0 === null ? Date.now() : null; updateTimer(); }
+  setInterval(() => { if (t0 !== null) updateTimer(); }, 500);
+  $('#timer').addEventListener('click', toggleTimer);
+
+  /* ---------- Input ---------- */
+  function fullscreen() {
+    const d = document;
+    if (d.fullscreenElement) { d.exitFullscreen && d.exitFullscreen().catch(() => {}); }
+    else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {});
+  }
+  let wake = null;
+  function keepAwake() { if (wake || !navigator.wakeLock) return; navigator.wakeLock.request('screen').then((w) => { wake = w; w.addEventListener('release', () => { wake = null; }); }).catch(() => {}); }
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    keepAwake();
+    if (!$('#overview').hidden) { if (e.key === 'Escape' || e.key === 'o' || e.key === 'O') { closeOverview(); e.preventDefault(); } return; }
+    const onBtn = e.target && e.target.tagName === 'BUTTON';
+    const k = e.key;
+    if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || (k === ' ' && !onBtn)) { e.preventDefault(); next(); }
+    else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp') { e.preventDefault(); prev(); }
+    else if (k === 'Home') go(0); else if (k === 'End') go(scenes.length - 1);
+    else if (k === 'n' || k === 'N') toggleNotes();
+    else if (k === 'o' || k === 'O') openOverview();
+    else if (k === 't' || k === 'T') toggleTimer();
+    else if (k === 'f' || k === 'F') fullscreen();
+    else if (hooks[scenes[cur].id] && hooks[scenes[cur].id].key) hooks[scenes[cur].id].key(k, e);
+  });
+  $('#next').addEventListener('click', next);
+  $('#prev').addEventListener('click', prev);
+  $('#notesBtn').addEventListener('click', toggleNotes);
+  $('#ovBtn').addEventListener('click', openOverview);
+  $('#ovClose').addEventListener('click', closeOverview);
+  $('#fsBtn').addEventListener('click', fullscreen);
+  let tx = null, ty = null;
+  $('#stage').addEventListener('touchstart', (e) => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  $('#stage').addEventListener('touchend', (e) => {
+    if (tx === null) return;
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) (dx < 0 ? next : prev)();
+    tx = null;
+  });
+  window.addEventListener('hashchange', () => {
+    if (hashLock) { hashLock = false; return; }
+    const i = scenes.findIndex((s) => '#' + s.id === location.hash);
+    if (i >= 0 && i !== cur) go(i);
+  });
+
+  /* ---------- Cold open ---------- */
+  (() => {
+    const cv = $('#crowd'), ctx = cv.getContext('2d');
+    let dots = [], W = 0, H = 0, dpr = 1, open = false, openAt = 0, raf = 0, secTimer = 0, sec = 40;
+    const clockEl = $('#bigClock');
+    function setClock(h, m, s) { clockEl.innerHTML = h + ':' + String(m).padStart(2, '0') + '<small>:' + String(s).padStart(2, '0') + '</small>'; }
+    function init() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = cv.clientWidth * dpr; H = cv.clientHeight * dpr;
+      cv.width = W; cv.height = H;
+      const gateX = W * 0.47, n = Math.round(Math.min(460, (W / dpr) * 0.42));
+      dots = [];
+      for (let i = 0; i < n; i++) {
+        const sx = gateX - 14 * dpr - Math.pow(Math.random(), 1.5) * W * 0.42;
+        const sy = H * (0.1 + Math.random() * 0.8);
+        const lane = Math.floor(Math.random() * 3);
+        dots.push({ sx, sy, ph: Math.random() * 6.28, gx: gateX + 8 * dpr, gy: H * (0.36 + lane * 0.14),
+          px: W * (0.56 + Math.random() * 0.41), py: H * (0.08 + Math.random() * 0.84),
+          delay: ((gateX - sx) / W) * 3200 + Math.random() * 500 });
+      }
+    }
+    const ease = (t) => (t < 0 ? 0 : t > 1 ? 1 : 1 - Math.pow(1 - t, 3));
+    function draw(now) {
+      ctx.fillStyle = css('--night-2'); ctx.fillRect(0, 0, W, H);
+      const gateX = W * 0.47;
+      ctx.strokeStyle = css('--night-muted'); ctx.lineWidth = 3 * dpr;
+      [0.26, 0.43, 0.57, 0.74].forEach((f) => { ctx.beginPath(); ctx.moveTo(gateX, H * f - 14 * dpr); ctx.lineTo(gateX, H * f + 14 * dpr); ctx.stroke(); });
+      ctx.beginPath(); ctx.moveTo(gateX, 0); ctx.lineTo(gateX, H * 0.2); ctx.moveTo(gateX, H * 0.8); ctx.lineTo(gateX, H); ctx.stroke();
+      ctx.fillStyle = css('--night-muted'); ctx.font = (12 * dpr) + 'px ' + css('--f-body');
+      ctx.fillText(open ? 'PARK' : 'GATES CLOSED', gateX + 14 * dpr, 18 * dpr);
+      ctx.fillStyle = css('--sun');
+      const e = now - openAt;
+      for (const d of dots) {
+        let x, y;
+        if (!open) { x = d.sx + Math.sin(now / 700 + d.ph) * 1.6 * dpr; y = d.sy + Math.cos(now / 900 + d.ph) * 1.6 * dpr; }
+        else if (reduce) { x = d.px; y = d.py; }
+        else {
+          const p1 = ease((e - d.delay) / 900), p2 = ease((e - d.delay - 900) / 1500);
+          x = d.sx + (d.gx - d.sx) * p1 + (d.px - d.gx) * p2;
+          y = d.sy + (d.gy - d.sy) * p1 + (d.py - d.gy) * p2;
+        }
+        ctx.beginPath(); ctx.arc(x, y, 2.6 * dpr, 0, 6.283); ctx.fill();
+      }
+    }
+    function loop(now) { draw(now); raf = requestAnimationFrame(loop); }
+    function start() { cancelAnimationFrame(raf); init(); if (reduce) draw(performance.now()); else raf = requestAnimationFrame(loop); }
+    hooks['cold-open'] = {
+      enter() {
+        open = false; sec = 40; setClock(8, 59, sec); clockOverride = null; start();
+        clearInterval(secTimer);
+        secTimer = setInterval(() => { if (!open && sec < 59) { sec++; setClock(8, 59, sec); } }, 1000);
+      },
+      frag(f) {
+        const want = f >= 1;
+        if (want && !open) { open = true; openAt = performance.now(); setClock(9, 0, 0); clockOverride = '9:00 AM'; if (reduce) draw(openAt); }
+        else if (!want && open) { open = false; sec = 59; setClock(8, 59, sec); clockOverride = null; if (reduce) draw(performance.now()); }
+        $('#parkClock').textContent = clockOverride || '8:59 AM';
+      },
+      leave() { cancelAnimationFrame(raf); clearInterval(secTimer); clockOverride = null; },
+    };
+    window.addEventListener('resize', () => { if (scenes[cur] && scenes[cur].id === 'cold-open') { init(); if (reduce) draw(performance.now()); } });
+  })();
+
+  /* ---------- Saga stepper ---------- */
+  hooks.saga = {
+    frag(f) {
+      const box = $('#sagaBox');
+      box.classList.toggle('s-run', f === 1);
+      box.classList.toggle('s-fail', f >= 2);
+      box.classList.toggle('s-comp', f >= 2);
+      $('#sagaMark').textContent = f === 1 ? '· approved' : f >= 2 ? '· declined' : '';
+      $('#sagaMark').style.color = f >= 2 ? 'var(--bad)' : 'var(--ok)';
+    },
+  };
+
+  /* ---------- Demo: the T-shirt ---------- */
+  (() => {
+    const TOK = 'tok_7Q2…';
+    const ask = { d: 0, kind: 'chat', who: 'guest', text: 'Find me a Ceiba Park T-shirt under $30.' };
+    const options = { d: 450, kind: 'chat', who: 'agent', text: 'I found two under $30, both in stock here:', options: [['Sunrise Tee', '$24.00'], ['Gate Map Tee', '$28.00']] };
+    const pick = { d: 1000, kind: 'chat', who: 'guest', text: 'The Gate Map Tee in medium. Use my points.' };
+    const searchOnline = [
+      { d: 500, kind: 'sys', lane: 'router', text: 'online · simple search → on-device model', st: 'ok', model: 'on-device' },
+      { d: 450, kind: 'sys', lane: 'device', text: 'intent: search · t-shirt · ceiba-park · max $30.00 · 180 ms', st: 'ok', audit: 'intent.parsed', ad: { model: 'on-device/v3', ms: 180 } },
+      { d: 450, kind: 'sys', lane: 'tool', text: 'catalog.search → 3 results, 1 over budget', st: 'ok' },
+      { d: 350, kind: 'sys', lane: 'tool', text: 'inventory.check(Gate One Gifts) → both in stock', st: 'ok' },
+    ];
+    const loyaltyOnline = [
+      { d: 450, kind: 'sys', lane: 'router', text: 'multi-step: points + payment → agent service (cloud model)', st: 'ok', model: 'cloud' },
+      { d: 450, kind: 'sys', lane: 'tool', text: 'loyalty.balance(member token) → 1,200 pts ($6.00)', st: 'ok' },
+      { d: 700, kind: 'sys', lane: 'cloud', text: 'reasons over cart and points · 1.3 s', st: 'ok', audit: 'model.called', ad: { model: 'cloud', ms: 1300 } },
+    ];
+    const proposal = (pts, reason) => ({ d: 350, kind: 'proposal', p: { items: [{ sku: 'CP-TEE-MAP-M', qty: 1 }], loyalty_points: pts, payment_token: TOK, reason }, audit: 'proposal.created', ad: { loyalty_points: pts } });
+    const rulesOk = { d: 600, kind: 'rules', ok: true, checks: [['Price comes from the catalog', '$28.00', true], ['In stock at Gate One Gifts', '2 left', true], ['Points within balance', '1,200 ≤ 1,200', true], ['Redemption cap', '$6.00 ≤ 50%', true]], audit: 'rules.validated', ad: { verdict: 'pass' } };
+    const confirm = [
+      { d: 400, kind: 'chat', who: 'agent', text: 'Gate Map Tee, M: $28.00 − $6.00 in points = $22.00. Please confirm on the screen.' },
+      { d: 900, kind: 'sys', lane: 'human', text: 'guest taps Confirm', st: 'ok', audit: 'guest.confirmed', ad: { total: '22.00' } },
+    ];
+    const sagaStart = [
+      { d: 400, kind: 'sys', lane: 'saga', text: 'reserve inventory · CP-TEE-MAP-M × 1', st: 'ok', audit: 'saga.step', ad: { step: 'reserve_inventory', status: 'done' } },
+      { d: 350, kind: 'sys', lane: 'saga', text: 'redeem 1,200 points', st: 'ok', audit: 'saga.step', ad: { step: 'redeem_points', status: 'done' } },
+    ];
+    const SC = {
+      normal: { label: 'Normal', hint: 'online, happy path', events: [
+        ask, ...searchOnline, options, pick, ...loyaltyOnline,
+        proposal(1200, 'Guest chose Gate Map Tee, size M, and asked to use points'),
+        rulesOk, ...confirm, ...sagaStart,
+        { d: 500, kind: 'sys', lane: 'saga', text: 'authorize payment · ' + TOK + ' · $22.00', st: 'ok', audit: 'saga.step', ad: { step: 'authorize_payment', status: 'done' } },
+        { d: 300, kind: 'sys', lane: 'saga', text: 'create order #CP-1048', st: 'ok', audit: 'saga.step', ad: { step: 'create_order', status: 'done' } },
+        { d: 250, kind: 'sys', lane: 'saga', text: 'print receipt · sync to cloud', st: 'ok' },
+        { d: 300, kind: 'chat', who: 'agent', text: 'Done. Your receipt is printing. Enjoy the park!' },
+        { d: 100, kind: 'result', ok: true, text: 'Sold · $22.00 · every decision logged', audit: 'sale.completed', ad: { outcome: 'sold', total: '22.00' } },
+      ] },
+      offline: { label: 'Offline', hint: 'the network drops', events: [
+        ask,
+        { d: 500, kind: 'sys', lane: 'router', text: 'offline → on-device model only', st: 'warn', model: 'on-device' },
+        { d: 450, kind: 'sys', lane: 'device', text: 'intent: search · t-shirt · ceiba-park · max $30.00 · 190 ms', st: 'ok', audit: 'intent.parsed', ad: { model: 'on-device/v3', ms: 190 } },
+        { d: 450, kind: 'sys', lane: 'tool', text: 'catalog.search (local snapshot, 8:52 AM) → 3 results', st: 'ok' },
+        { d: 350, kind: 'sys', lane: 'tool', text: 'inventory.check (local count) → both in stock', st: 'ok' },
+        options, pick,
+        { d: 450, kind: 'sys', lane: 'router', text: 'offline → on-device model', st: 'warn' },
+        { d: 450, kind: 'sys', lane: 'tool', text: 'loyalty.balance → unavailable offline', st: 'warn' },
+        { d: 450, kind: 'chat', who: 'agent', text: "I can't use points while the register is offline. Pay the full $28.00?" },
+        { d: 900, kind: 'chat', who: 'guest', text: 'Yes, that works.' },
+        proposal(0, 'Loyalty unavailable offline; guest accepted full price'),
+        { d: 600, kind: 'rules', ok: true, checks: [['Price from local catalog', '$28.00', true], ['In stock (local count)', '2 left', true], ['Offline sale limit', '$28.00 ≤ $50.00', true]], audit: 'rules.validated', ad: { verdict: 'pass', rules: 'local v41' } },
+        { d: 400, kind: 'chat', who: 'agent', text: 'Gate Map Tee, M: $28.00. Please confirm on the screen.' },
+        { d: 900, kind: 'sys', lane: 'human', text: 'guest taps Confirm', st: 'ok', audit: 'guest.confirmed', ad: { total: '28.00' } },
+        { d: 400, kind: 'sys', lane: 'saga', text: 'reserve inventory (local)', st: 'ok' },
+        { d: 500, kind: 'sys', lane: 'saga', text: 'payment: store-and-forward under the offline limit', st: 'warn', audit: 'saga.step', ad: { step: 'authorize_payment', status: 'deferred' } },
+        { d: 300, kind: 'sys', lane: 'saga', text: 'create order locally #CP-L-0207', st: 'ok' },
+        { d: 300, kind: 'sys', lane: 'saga', text: 'outbox: 4 events queued for sync, with idempotency keys', st: 'warn' },
+        { d: 300, kind: 'chat', who: 'agent', text: 'Done. Your receipt is printing.' },
+        { d: 100, kind: 'result', ok: true, text: 'Sold offline · $28.00 · syncs when the network returns', audit: 'sale.completed', ad: { outcome: 'sold_offline', total: '28.00' } },
+      ] },
+      mistake: { label: 'Model miscounts', hint: 'too many points', events: [
+        ask, ...searchOnline, options, pick, ...loyaltyOnline,
+        proposal(2000, 'Redeem points for the Gate Map Tee'),
+        { d: 600, kind: 'rules', ok: false, checks: [['Price comes from the catalog', '$28.00', true], ['In stock at Gate One Gifts', '2 left', true], ['Points within balance', '2,000 > 1,200', false]], audit: 'rules.rejected', ad: { verdict: 'fail', rule: 'points_within_balance' } },
+        { d: 400, kind: 'sys', lane: 'rules', text: 'rejection returned to the agent as an observation', st: 'warn' },
+        { d: 700, kind: 'sys', lane: 'cloud', text: 'revises the proposal · 0.9 s', st: 'ok', audit: 'model.called', ad: { model: 'cloud', ms: 900 } },
+        proposal(1200, 'Corrected: guest has 1,200 points'),
+        rulesOk, ...confirm, ...sagaStart,
+        { d: 500, kind: 'sys', lane: 'saga', text: 'authorize payment · ' + TOK + ' · $22.00', st: 'ok' },
+        { d: 300, kind: 'sys', lane: 'saga', text: 'create order #CP-1049', st: 'ok' },
+        { d: 300, kind: 'chat', who: 'agent', text: 'Done. Your receipt is printing.' },
+        { d: 100, kind: 'result', ok: true, text: 'Sold · $22.00 · the bad proposal never reached the saga', audit: 'sale.completed', ad: { outcome: 'sold', total: '22.00' } },
+      ] },
+      declined: { label: 'Payment declined', hint: 'the saga compensates', events: [
+        ask, ...searchOnline, options, pick, ...loyaltyOnline,
+        proposal(1200, 'Guest chose Gate Map Tee, size M, and asked to use points'),
+        rulesOk, ...confirm, ...sagaStart,
+        { d: 600, kind: 'sys', lane: 'saga', text: 'authorize payment → declined by the issuer', st: 'err', audit: 'saga.step', ad: { step: 'authorize_payment', status: 'failed' } },
+        { d: 450, kind: 'sys', lane: 'saga', text: 'compensate: restore 1,200 points', st: 'comp', audit: 'saga.compensated', ad: { step: 'redeem_points' } },
+        { d: 400, kind: 'sys', lane: 'saga', text: 'compensate: release inventory', st: 'comp', audit: 'saga.compensated', ad: { step: 'reserve_inventory' } },
+        { d: 400, kind: 'chat', who: 'agent', text: 'The payment was declined. Nothing was charged and your points are back. Want to try another card?' },
+        { d: 100, kind: 'result', ok: false, text: 'Declined · compensated · no money moved', audit: 'sale.compensated', ad: { outcome: 'compensated' } },
+      ] },
+    };
+    const keys = Object.keys(SC);
+    const laneLabel = { router: 'Router', device: 'On-device', cloud: 'Cloud', tool: 'Tool', rules: 'Rules', human: 'Guest', saga: 'Saga' };
+    let pickKey = 'normal', idx = 0, timer = 0, clock = 0, running = false;
+    const chat = $('#dChat'), trace = $('#dTrace'), audit = $('#dAudit'), status = $('#dStatus');
+    const scen = $('#dScen');
+    keys.forEach((k, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'tog'; b.dataset.k = k;
+      b.innerHTML = '<span></span><small></small>';
+      b.querySelector('span').textContent = (i + 1) + ' · ' + SC[k].label;
+      b.querySelector('small').textContent = SC[k].hint;
+      b.addEventListener('click', () => load(k));
+      scen.appendChild(b);
+    });
+    const ts = () => {
+      const base = (9 * 3600 + 3 * 60 + 10) * 1000 + clock;
+      const h = Math.floor(base / 3600000), m = Math.floor(base / 60000) % 60, s = Math.floor(base / 1000) % 60, ms = base % 1000;
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(ms).padStart(3, '0');
+    };
+    const scrollEnd = (el) => { el.scrollTop = el.scrollHeight; };
+    function stop() { clearTimeout(timer); running = false; $('#dRun').textContent = 'Run (R)'; }
+    function load(k) {
+      stop();
+      pickKey = k; idx = 0; clock = 0;
+      $$('button', scen).forEach((b) => b.setAttribute('aria-pressed', b.dataset.k === k));
+      chat.innerHTML = ''; trace.innerHTML = ''; audit.textContent = ''; status.textContent = ''; status.className = 'dstatus';
+      $('#dModel').textContent = '';
+    }
+    function logAudit(ev) {
+      if (!ev.audit) return;
+      const rec = Object.assign({ ts: ts(), trace: 'tr-7f3a', agent: 'concierge', event: ev.audit }, ev.ad || {});
+      audit.textContent += (audit.textContent ? '\n' : '') + JSON.stringify(rec);
+      scrollEnd(audit);
+    }
+    function render(ev) {
+      if (ev.model) $('#dModel').textContent = ev.model === 'cloud' ? 'loop: agent service' : 'loop: on-device';
+      if (ev.kind === 'chat') {
+        const d = document.createElement('div');
+        d.className = 'bub ' + ev.who;
+        d.innerHTML = '<span class="who"></span><span class="tx"></span>';
+        d.querySelector('.who').textContent = ev.who === 'guest' ? 'Guest' : 'Concierge agent';
+        d.querySelector('.tx').textContent = ev.text;
+        (ev.options || []).forEach(([n, p]) => {
+          const o = document.createElement('div'); o.className = 'opt2';
+          o.innerHTML = '<span></span><span></span>';
+          o.children[0].textContent = n; o.children[1].textContent = p;
+          d.appendChild(o);
+        });
+        chat.appendChild(d); scrollEnd(chat);
+      } else if (ev.kind === 'proposal') {
+        const d = document.createElement('div');
+        d.className = 'prop';
+        d.innerHTML = '<b>Cart proposal → rules service</b><pre></pre>';
+        d.querySelector('pre').textContent = JSON.stringify(ev.p, null, 2);
+        chat.appendChild(d); scrollEnd(chat);
+        addTrace('tool', 'cart.propose → sent for validation', 'ok');
+      } else if (ev.kind === 'sys') {
+        addTrace(ev.lane, ev.text, ev.st);
+      } else if (ev.kind === 'rules') {
+        const li = addTrace('rules', ev.ok ? 'proposal APPROVED' : 'proposal REJECTED', ev.ok ? 'ok' : 'err');
+        const ul = document.createElement('ul'); ul.className = 'checks';
+        ev.checks.forEach(([n, v, pass]) => {
+          const c = document.createElement('li');
+          c.innerHTML = '<span></span><span></span><span class="v"></span>';
+          c.children[0].className = pass ? 'y' : 'n'; c.children[0].textContent = pass ? '✓' : '✗';
+          c.children[1].textContent = n; c.children[2].textContent = v;
+          ul.appendChild(c);
+        });
+        li.lastChild.appendChild(ul);
+      } else if (ev.kind === 'result') {
+        status.textContent = ev.text;
+        status.className = 'dstatus ' + (ev.ok ? 'ok' : 'bad');
+      }
+      logAudit(ev);
+    }
+    function addTrace(lane, text, st) {
+      const li = document.createElement('li');
+      li.className = st || '';
+      li.innerHTML = '<span class="lane ' + lane + '"></span><span></span>';
+      li.children[0].textContent = laneLabel[lane] || lane;
+      li.children[1].textContent = text;
+      trace.appendChild(li); scrollEnd(trace.parentElement);
+      return li;
+    }
+    function step() {
+      const evs = SC[pickKey].events;
+      if (idx >= evs.length) return false;
+      const ev = evs[idx++];
+      clock += ev.d || 0;
+      render(ev);
+      return idx < evs.length;
+    }
+    function run() {
+      if (running) { stop(); return; }
+      if (idx >= SC[pickKey].events.length) load(pickKey);
+      running = true; $('#dRun').textContent = 'Pause (R)';
+      const tick = () => {
+        const evs = SC[pickKey].events;
+        if (idx >= evs.length) { stop(); return; }
+        timer = setTimeout(() => { step(); tick(); }, reduce ? 0 : (evs[idx].d || 0));
+      };
+      tick();
+    }
+    $('#dRun').addEventListener('click', run);
+    $('#dStep').addEventListener('click', () => { stop(); if (idx >= SC[pickKey].events.length) load(pickKey); step(); });
+    hooks.demo = {
+      enter() { load(pickKey); },
+      leave() { stop(); },
+      key(k) {
+        const n = +k;
+        if (n >= 1 && n <= keys.length) load(keys[n - 1]);
+        else if (k === 'r' || k === 'R') run();
+        else if (k === 's' || k === 'S') { stop(); if (idx >= SC[pickKey].events.length) load(pickKey); step(); }
+      },
+    };
+    load('normal');
+  })();
+
+  /* ---------- Boot ---------- */
+  const startIdx = scenes.findIndex((s) => '#' + s.id === location.hash);
+  go(startIdx < 0 ? 0 : startIdx, 0);
+})();
+</script>
+
+</body></html>
